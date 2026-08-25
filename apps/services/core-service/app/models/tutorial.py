@@ -1,4 +1,4 @@
-import uuid
+""" import uuid
 from typing import List
 
 from sqlalchemy import JSON, Column, ForeignKey, Integer, String, Table, Text
@@ -140,3 +140,4 @@ class Linguagem(Base):
     tecnologias: Mapped[List["Tecnologia"]] = relationship(
         secondary=tecnologia_linguagem, back_populates="linguagens"
     )
+# """"""  """
