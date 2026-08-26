@@ -3,11 +3,11 @@
 Revision ID: 001
 Revises:
 Create Date: 2026-06-28 12:00:00.000000
-
+s
 """
 
 import uuid
-from typing import Sequence, Union
+from typing import Sequence, Unionf
 
 import sqlalchemy as sa
 

@@ -1,7 +1,10 @@
-import uuid
+from __future__ import annotations
 
-from sqlalchemy import Boolean, String
-from sqlalchemy.orm import Mapped, mapped_column
+from uuid import UUID
+
+from sqlalchemy import Boolean, String, text
+from sqlalchemy.dialects.postgresql import UUID as PG_UUID
+from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.models.base import Base
 
@@ -9,9 +12,10 @@ from app.models.base import Base
 class Usuario(Base):
     __tablename__ = "usuarios"
 
-    id: Mapped[uuid.UUID] = mapped_column(
+    id: Mapped[UUID] = mapped_column(
+        PG_UUID(as_uuid=True),
         primary_key=True,
-        default=uuid.uuid4,
+        server_default=text("uuidv7()"),
     )
 
     nome: Mapped[str] = mapped_column(
@@ -21,8 +25,8 @@ class Usuario(Base):
 
     email: Mapped[str] = mapped_column(
         String(100),
-        unique=True,
         nullable=False,
+        unique=True,
     )
 
     senha_hash: Mapped[str] = mapped_column(
@@ -32,6 +36,17 @@ class Usuario(Base):
 
     is_admin: Mapped[bool] = mapped_column(
         Boolean,
-        default=False,
         nullable=False,
+        default=False,
+        server_default=text("false"),
+    )
+
+    reservas: Mapped[list["Reserva"]] = relationship(
+        "Reserva",
+        back_populates="usuario",
+    )
+
+    avaliacoes: Mapped[list["Avaliacao"]] = relationship(
+        "Avaliacao",
+        back_populates="usuario",
     )
