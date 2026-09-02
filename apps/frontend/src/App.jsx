@@ -82,7 +82,7 @@ export default function App() {
           <hr className="my-4" />
           <div className="row g-3">
             <div className="col-md-3 col-sm-6">
-              <strong>Equipe:</strong> <span className="text-secondary ms-1">{data?.equipe || 'Alpha'}</span>
+              <strong>Equipe:</strong> <span className="text-secondary ms-1">{data?.equipe || 'Delta'}</span>
             </div>
             <div className="col-md-3 col-sm-6">
               <strong>Professor:</strong> <span className="text-secondary ms-1">{data?.professor?.nome || 'Ronildo Silva'}</span>
@@ -91,7 +91,7 @@ export default function App() {
               <strong>Ano:</strong> <span className="text-secondary ms-1">{data?.ano || '2026'}</span>
             </div>
             <div className="col-md-3 col-sm-6">
-              <strong>Semestre:</strong> <span className="text-secondary ms-1">{data?.semestre || '2'}</span>
+              <strong>Semestre:</strong> <span className="text-secondary ms-1">{data?.semestre || '6'}</span>
             </div>
           </div>
         </header>
