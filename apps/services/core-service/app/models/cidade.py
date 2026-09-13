@@ -19,10 +19,11 @@ class Cidade(Base):
     )
 
     nome: Mapped[str] = mapped_column(
-        String(100),
-        nullable=False,
-    )
-
+    String(100),
+    nullable=False,
+    unique=True,
+)
+    
     estado: Mapped[str] = mapped_column(
         String(2),
         nullable=False,
