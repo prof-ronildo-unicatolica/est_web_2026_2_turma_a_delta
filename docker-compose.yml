@@ -23,6 +23,9 @@ services:
       timeout: 5s
       retries: 5
 
+    networks:
+      - bigdata
+
 
   mongodb:
     image: mongo:7.0
@@ -51,6 +54,9 @@ services:
       timeout: 5s
       retries: 5
 
+    networks:
+      - bigdata
+
 
   rabbitmq:
     image: rabbitmq:3-management-alpine
@@ -76,6 +82,9 @@ services:
       interval: 10s
       timeout: 5s
       retries: 5
+
+    networks:
+      - bigdata
 
 
   # ─── Backend (Core Service) ────────────────────────────────────────────────
@@ -123,6 +132,9 @@ services:
         poetry run uvicorn app.main:app --host 0.0.0.0 --port 8000
       "
 
+    networks:
+      - bigdata
+
 
   # ─── Worker de Auditoria ───────────────────────────────────────────────────
 
@@ -163,6 +175,9 @@ services:
       - -m
       - app.workers.audit_worker
 
+    networks:
+      - bigdata
+
 
   # ─── Frontend (React + Vite) ────────────────────────────────────────────────
 
@@ -180,9 +195,20 @@ services:
     depends_on:
       - core-service
 
+    networks:
+      - bigdata
 
+
+# ─── Volumes ─────────────────────────────────────────────────────────────────
 # ─── Volumes ─────────────────────────────────────────────────────────────────
 
 volumes:
   postgres_data:
   mongo_data:
+
+
+# ─── Rede compartilhada ──────────────────────────────────────────────────────
+
+networks:
+  bigdata:
+    driver: bridge
