@@ -1,9 +1,10 @@
 from __future__ import annotations
 
+from typing import Optional
 from uuid import UUID
 
 from sqlalchemy import String, text
-from sqlalchemy.dialects.postgresql import UUID as PG_UUID
+from sqlalchemy.dialects.postgresql import JSONB, UUID as PG_UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.models.base import Base
@@ -21,6 +22,16 @@ class Cidade(Base):
     nome: Mapped[str] = mapped_column(
         String(100),
         unique=True,
+        nullable=False,
+    )
+
+    estado: Mapped[str] = mapped_column(
+        String(2),
+        nullable=False,
+    )
+
+    limite_territorial: Mapped[dict] = mapped_column(
+        JSONB,
         nullable=False,
     )
 
