@@ -1,26 +1,36 @@
-# app/core/database.py
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 
 from app.core.config import settings
-from app.core.mongo import mongo_db  # conexão Mongo agora vem daqui
+from app.models.base import Base
 
-# --- Configuração do PostgreSQL ---
-engine = create_engine(settings.SQLALCHEMY_DATABASE_URI, pool_pre_ping=True)
-SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
+# Importa os modelos para registrar os relacionamentos
+import app.models.usuario
+import app.models.reserva
+import app.models.cidade
+import app.models.hotel
+import app.models.quarto
+import app.models.comodidade
+import app.models.hotel_comodidade
+import app.models.reserva_servico
+import app.models.servico_adicional
+import app.models.tarifa_temporada
+import app.models.avaliacao
 
 
-def get_db():
-    db = SessionLocal()
-    try:
-        yield db
-    finally:
-        db.close()
+DATABASE_URL = (
+    f"postgresql+psycopg2://"
+    f"{settings.POSTGRES_USER}:"
+    f"{settings.POSTGRES_PASSWORD}@"
+    f"{settings.POSTGRES_SERVER}:"
+    f"{settings.POSTGRES_PORT}/"
+    f"{settings.POSTGRES_DB}"
+)
 
+engine = create_engine(DATABASE_URL)
 
-# --- Configuração do MongoDB ---
-# mongo_db é importado de app.core.mongo (fonte única da conexão).
-# get_mongo_db() é mantido aqui por compatibilidade com o código existente
-# (ex: app.main), que já importa dessa forma.
-def get_mongo_db():
-    return mongo_db
+SessionLocal = sessionmaker(
+    bind=engine,
+    autocommit=False,
+    autoflush=False,
+)

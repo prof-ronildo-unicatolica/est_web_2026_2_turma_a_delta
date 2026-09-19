@@ -1,8 +1,16 @@
-from pydantic import BaseModel
+from uuid import UUID
+
+from pydantic import BaseModel, EmailStr, Field
+
+
+class UsuarioRegister(BaseModel):
+    nome: str = Field(min_length=2, max_length=100)
+    email: EmailStr
+    senha: str = Field(min_length=6, max_length=100)
 
 
 class LoginRequest(BaseModel):
-    email: str
+    email: EmailStr
     senha: str
 
 
@@ -12,8 +20,11 @@ class Token(BaseModel):
 
 
 class UsuarioPublic(BaseModel):
-    """Perfil publico do usuario (nunca expoe senha)."""
-
-    email: str
+    id: UUID
+    email: EmailStr
     nome: str
     is_admin: bool
+
+    model_config = {
+        "from_attributes": True
+    }
