@@ -16,6 +16,7 @@ services:
 
     volumes:
       - postgres_data:/var/lib/postgresql
+      - ./docker/postgres/init:/docker-entrypoint-initdb.d:ro
 
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U postgres -d hotel_db_dev"]
@@ -128,10 +129,36 @@ services:
     command: >
       sh -c "
         poetry run alembic upgrade head &&
-        poetry run python -m app.core.seed_mongo &&
         poetry run uvicorn app.main:app --host 0.0.0.0 --port 8000
       "
 
+    networks:
+      - bigdata
+
+
+  # ─── Worker de Reservas ────────────────────────────────────────────────────
+
+  reservation-worker:
+    build:
+      context: ./apps/services/core-service
+      dockerfile: Dockerfile
+    container_name: hotel-reservation-worker
+    restart: unless-stopped
+    environment:
+      POSTGRES_SERVER: postgres
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: hotel_db_dev
+      POSTGRES_PORT: 5432
+      MONGODB_URL: mongodb://admin:admin123@mongodb:27017
+      MONGODB_DB: hotel_mongo_dev
+      RABBITMQ_URL: amqp://guest:guest@rabbitmq:5672/
+    depends_on:
+      postgres:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+    command: ["poetry", "run", "python", "-m", "app.workers.reserva_worker"]
     networks:
       - bigdata
 
