@@ -13,30 +13,30 @@ pwd_context = CryptContext(
 
 
 def hash_password(password: str) -> str:
-    """Transforma a senha em hash bcrypt."""
+    """Gera um hash bcrypt para armazenamento seguro da senha."""
+    if not password:
+        raise ValueError("A senha não pode ser vazia.")
     return pwd_context.hash(password)
 
 
-def verify_password(
-    password: str,
-    password_hash: str,
-) -> bool:
-    """Verifica se a senha corresponde ao hash."""
-    return pwd_context.verify(
-        password,
-        password_hash,
-    )
+def verify_password(password: str, password_hash: str) -> bool:
+    """Verifica uma senha em texto contra seu hash bcrypt."""
+    if not password or not password_hash:
+        return False
+    try:
+        return pwd_context.verify(password, password_hash)
+    except (ValueError, TypeError):
+        return False
 
 
 def create_access_token(user_id: str) -> str:
-    """Cria um JWT contendo o ID do usuário."""
-
-    expire = datetime.now(timezone.utc) + timedelta(
-        minutes=settings.JWT_EXPIRE_MINUTES
-    )
+    """Cria um JWT assinado contendo o ID do usuário no claim `sub`."""
+    now = datetime.now(timezone.utc)
+    expire = now + timedelta(minutes=settings.JWT_EXPIRE_MINUTES)
 
     payload = {
-        "sub": user_id,
+        "sub": str(user_id),
+        "iat": now,
         "exp": expire,
     }
 
@@ -47,11 +47,14 @@ def create_access_token(user_id: str) -> str:
     )
 
 
-def decode_access_token(token: str) -> dict:
-    """Decodifica e valida o JWT."""
-
+def decode_token(token: str) -> dict:
+    """Valida e decodifica um JWT."""
     return jwt.decode(
         token,
         settings.JWT_SECRET_KEY,
         algorithms=[settings.JWT_ALGORITHM],
     )
+
+
+# Compatibilidade com código que utilizava o nome anterior.
+decode_access_token = decode_token

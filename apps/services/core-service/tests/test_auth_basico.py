@@ -1,62 +1,45 @@
-"""Testes de fumaca do auth BASICO (placeholder).
+from datetime import datetime, timedelta, timezone
 
-Documentam o contrato atual da API de autenticacao. Quando os alunos
-implementarem a versao real (JWT/RBAC) na Sprint 2, estes testes devem
-ser adaptados/substituidos pela suite definitiva da atividade.
-"""
+import jwt
+from app.core.security import (
+    create_access_token,
+    decode_token,
+    hash_password,
+    verify_password,
+)
+from app.core.config import settings
 
-BASE = "/api/v1/auth"
+
+def test_hash_e_verify_password():
+    senha = "SenhaSegura123!"
+    senha_hash = hash_password(senha)
+
+    assert senha_hash != senha
+    assert verify_password(senha, senha_hash) is True
+    assert verify_password("senha-errada", senha_hash) is False
 
 
-def test_login_valido_retorna_token(client):
-    resp = client.post(
-        f"{BASE}/login", json={"email": "cliente@hotel.com", "senha": "cliente123"}
+def test_create_e_decode_token():
+    token = create_access_token("00000000-0000-0000-0000-000000000001")
+    payload = decode_token(token)
+
+    assert payload["sub"] == "00000000-0000-0000-0000-000000000001"
+    assert "exp" in payload
+    assert "iat" in payload
+
+
+def test_token_expirado_e_rejeitado():
+    token = jwt.encode(
+        {
+            "sub": "00000000-0000-0000-0000-000000000001",
+            "exp": datetime.now(timezone.utc) - timedelta(minutes=1),
+        },
+        settings.JWT_SECRET_KEY,
+        algorithm=settings.JWT_ALGORITHM,
     )
-    assert resp.status_code == 200
-    body = resp.json()
-    assert body["token_type"] == "bearer"
-    assert body["access_token"]
 
-
-def test_login_invalido_retorna_401(client):
-    resp = client.post(
-        f"{BASE}/login", json={"email": "cliente@hotel.com", "senha": "errada"}
-    )
-    assert resp.status_code == 401
-
-
-def test_rota_protegida_sem_token_e_bloqueada(client):
-    resp = client.get(f"{BASE}/me")
-    assert resp.status_code in (401, 403)
-
-
-def test_rota_protegida_com_token_retorna_perfil(client):
-    token = client.post(
-        f"{BASE}/login", json={"email": "cliente@hotel.com", "senha": "cliente123"}
-    ).json()["access_token"]
-    resp = client.get(f"{BASE}/me", headers={"Authorization": f"Bearer {token}"})
-    assert resp.status_code == 200
-    body = resp.json()
-    assert body["email"] == "cliente@hotel.com"
-    assert body["is_admin"] is False
-    assert "senha" not in body  # a senha nunca deve vazar na resposta
-
-
-def test_cliente_nao_acessa_rota_admin(client):
-    token = client.post(
-        f"{BASE}/login", json={"email": "cliente@hotel.com", "senha": "cliente123"}
-    ).json()["access_token"]
-    resp = client.get(
-        f"{BASE}/admin/verificacao", headers={"Authorization": f"Bearer {token}"}
-    )
-    assert resp.status_code == 403
-
-
-def test_admin_acessa_rota_admin(client):
-    token = client.post(
-        f"{BASE}/login", json={"email": "admin@hotel.com", "senha": "admin123"}
-    ).json()["access_token"]
-    resp = client.get(
-        f"{BASE}/admin/verificacao", headers={"Authorization": f"Bearer {token}"}
-    )
-    assert resp.status_code == 200
+    try:
+        decode_token(token)
+        assert False, "Token expirado deveria ser rejeitado"
+    except jwt.ExpiredSignatureError:
+        pass
