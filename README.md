@@ -1,144 +1,78 @@
-# Core Service - Backend (FastAPI + PostgreSQL + MongoDB)
+# Estágio II em Desenvolvimento Web — Turma A · Equipe Delta
 
-Este diretório contém o **Core Service**, a API principal do Sistema de Reservas de Rede Hoteleira, desenvolvida em **FastAPI** (Python). 
+Repositório oficial da equipe **Delta** (Turma A) na disciplina de **Estágio II em
+Desenvolvimento Web** — 2026.2.
 
-Atualmente, o projeto inclui uma estrutura de tutorial acadêmico que demonstra o acesso e a manipulação de dados em bancos relacional (PostgreSQL via SQLAlchemy e Alembic) e NoSQL (MongoDB via Motor).
+## Integrantes
 
----
+- Larissa Kelly da Silva Lopes
+- Kayky Barbosa Maciel
+- João Pedro de Melo Bezerra
+- Jonas Miguel de Oliveira Costa
+- Matheus Arruda Duarte Maia
 
-## Tecnologias e Dependências
+## Começando
 
-* **Framework Web**: [FastAPI](https://fastapi.tiangolo.com/) (assíncrono e de alto desempenho).
-* **Banco de Dados Relacional**: PostgreSQL (gerenciado via SQLAlchemy ORM).
-* **Versionamento de Banco**: Alembic (gerencia migrações e seeds).
-* **Banco de Dados NoSQL**: MongoDB (acessado assincronamente através da biblioteca Motor).
-* **Validação de Dados**: Pydantic e Pydantic Settings (carrega variáveis do `.env`).
-* **Segurança/Criptografia**: passlib com bcrypt (para criptografar senhas).
+Este repositório **já vem com o projeto-base pronto**: backend em FastAPI, frontend em
+React e toda a infraestrutura (PostgreSQL, MongoDB, RabbitMQ) em Docker. Você não
+precisa criar a estrutura do zero — seu trabalho é evoluí-la a cada sprint.
 
----
+Para colocar tudo no ar:
 
-## Como Executar o Backend Localmente
-
-### 1. Pré-requisitos
-Certifique-se de que os containers do banco de dados estejam rodando na raiz do projeto:
 ```bash
-# Na raiz do monorepo:
-docker compose up -d
+# 1. Clone o repositório (o clone já cai na branch develop)
+git clone <url-ssh-deste-repositorio>
+cd <pasta-do-repositorio>
+
+# 2. Suba a stack completa (a primeira vez demora alguns minutos)
+docker compose up -d --build
+
+# 3. Confirme que a API respondeu
+curl http://localhost:8000/health
 ```
 
-### 2. Configurar o Arquivo de Variáveis (.env)
-Duplique o arquivo de modelo `env_example` com o nome `.env`:
-* **Linux/macOS**: `cp env_example .env`
-* **Windows (PowerShell)**: `copy env_example .env`
+| Serviço | Endereço |
+| :--- | :--- |
+| Frontend | http://localhost:5173 |
+| API + Swagger | http://localhost:8000/docs |
+| Painel do RabbitMQ | http://localhost:15672 |
 
----
+📖 **Passo a passo completo** — pré-requisitos de instalação, como rodar o backend fora
+do Docker, o que já vem pronto e solução de problemas comuns:
+[**Guia de Primeiros Passos**](https://github.com/prof-ronildo-unicatolica/estagio-desenvolvimento-web/blob/main/docs/04_guias_tutoriais/guia_primeiros_passos.md)
 
-### 3. Instalação e Execução
+## Fluxo de trabalho
 
-#### Opção A: Com Virtualenv Padrão (`venv`)
-1. **Criar e Ativar Ambiente Virtual**:
-   * No Linux/macOS:
-     ```bash
-     python3 -m venv .venv
-     source .venv/bin/activate
-     ```
-   * No Windows (PowerShell):
-     ```powershell
-     python -m venv .venv
-     .venv\Scripts\Activate.ps1
-     ```
-2. **Instalar Dependências**:
-   ```bash
-   pip install --upgrade pip
-   pip install -r requirements.txt
-   ```
-3. **Rodar Migrações e Seeds (Alembic)**:
-   ```bash
-   alembic upgrade head
-   ```
-4. **Executar o Servidor**:
-   ```bash
-   uvicorn app.main:app --reload --port 8000
-   ```
+A branch padrão do repositório é a **`develop`** — é nela que o trabalho da equipe
+acontece. A `main` é reservada para versões estáveis e **não** recebe commits diretos.
 
----
+**Regras:**
 
-#### Opção B: Com Poetry
-1. **Instalar e Ativar Ambiente**:
-   ```bash
-   poetry config virtualenvs.in-project true
-   poetry install
-   poetry shell
-   ```
-2. **Rodar Migrações e Seeds (Alembic)**:
-   ```bash
-   poetry run alembic upgrade head
-   ```
-3. **Executar o Servidor**:
-   ```bash
-   poetry run uvicorn app.main:app --reload --port 8000
-   ```
+1. Trabalhe sempre a partir da `develop`, e nunca faça commit direto nela.
+2. Crie sua branch **a partir da `develop`**, com nome descritivo
+   (ex: `feature/cadastro-hospede`, `fix/validacao-cpf`).
+3. Abra o **Pull Request sempre com destino à `develop`** — nunca para a `main`.
+4. O PR precisa da revisão de pelo menos um colega antes do merge.
 
----
+Revisar os Pull Requests dos colegas também conta como contribuição avaliada.
 
-## Rotas Disponíveis (Endpoints)
+```bash
+# 1. Garanta que sua develop local está atualizada
+git checkout develop
+git pull origin develop
 
-Após iniciar o servidor, acesse a documentação interativa oficial do Swagger em **`http://localhost:8000/docs`**.
+# 2. Crie sua branch a partir da develop
+git checkout -b feature/minha-tarefa
 
-* **`GET /`**: Rota raiz de boas-vindas.
-* **`GET /api/v1/health`**: Verifica a saúde do sistema e testa ativamente a conexão com o Postgres e MongoDB.
-* **`endpoints legados do projeto-base`**: Retorna dados de equipes e relacionamentos complexos do banco (Professor, Disciplina, Stacks, Tecnologias e Linguagens).
+# 3. Trabalhe, comite e envie
+git add .
+git commit -m "feat: descreve o que foi feito"
+git push -u origin feature/minha-tarefa
 
----
-
-## Estrutura de Diretórios Interna
-
-```text
-├── alembic/                  # Configurações e scripts de migração do banco relacional
-│   └── versions/             # Histórico de alterações e dados seeds estruturados
-├── app/
-│   ├── api/
-│   │   └── v1/               # Controladores e Rotas da API (health e sobre)
-│   ├── core/
-│   │   ├── config.py         # Variáveis e configurações obtidas do .env
-│   │   ├── database.py       # Gerenciamento de conexões com Postgres e MongoDB
-│   │   └── seed_catalogo.py     # Script de inicialização automática de usuários no MongoDB
-│   ├── models/               # Modelos ORM SQLAlchemy (relacionamento 1:1, 1:N, N:M)
-│   ├── schemas/              # Schemas Pydantic (validação de dados e Swagger)
-│   ├── repositories/         # Camada de abstracao de dados (queries SQL)
-│   ├── services/             # Logica de negocio intermediaria
-│   └── main.py               # Inicializador do app FastAPI e eventos de startup
-├── env_example               # Template visível de variáveis de ambiente para os alunos
-├── pyproject.toml            # Arquivo de dependências do Poetry
-└── requirements.txt          # Dependências legíveis para instalação via pip tradicional
+# 4. Abra o Pull Request no GitHub com destino à branch develop
 ```
 
+## Documentação da disciplina
 
-## Autenticação — Sprint 2
-
-A autenticação usa PostgreSQL + bcrypt + JWT.
-
-Rotas:
-- `POST /api/v1/auth/register`
-- `POST /api/v1/auth/login`
-- `GET /api/v1/auth/me` (Bearer)
-- `GET /api/v1/auth/admin/verificacao` (Bearer + admin)
-
-Fluxo:
-1. `register` recebe `nome`, `email`, `senha` e opcionalmente `is_admin`.
-2. A senha é armazenada somente como `senha_hash` usando bcrypt.
-3. `login` retorna `access_token`.
-4. O frontend envia `Authorization: Bearer <access_token>`.
-5. `get_current_user` valida o JWT e consulta o usuário no PostgreSQL.
-6. `get_current_admin` bloqueia usuários que não possuem `is_admin=true`.
-
-Antes de executar em produção, altere `JWT_SECRET_KEY`.
-
-## Fluxo implementado até a Sprint 8
-- JWT/bcrypt/RBAC em PostgreSQL.
-- Catálogo e quartos em PostgreSQL, projeção `catalogo_hoteis` em MongoDB.
-- Motor de preço em `app/services/reserva_service.py`.
-- `POST /api/v1/reservas` retorna `202 Pendente` e publica em `solicitacoes-reserva`.
-- `reservation-worker` serializa o consumo por quarto e confirma/cancela.
-- Auditoria é gravada em `historico_auditoria` no MongoDB.
-- `POST /api/v1/reservas/{id}/cancelar` aplica 48h, 1 diária ou 100% para não reembolsável.
+Plano de ensino, arquitetura, roadmap das sprints e guias de instalação:
+https://github.com/prof-ronildo-unicatolica/estagio-desenvolvimento-web
