@@ -112,3 +112,24 @@ Após iniciar o servidor, acesse a documentação interativa oficial do Swagger 
 ├── pyproject.toml            # Arquivo de dependências do Poetry
 └── requirements.txt          # Dependências legíveis para instalação via pip tradicional
 ```
+
+
+## Autenticação — Sprint 2
+
+A autenticação usa PostgreSQL + bcrypt + JWT.
+
+Rotas:
+- `POST /api/v1/auth/register`
+- `POST /api/v1/auth/login`
+- `GET /api/v1/auth/me` (Bearer)
+- `GET /api/v1/auth/admin/verificacao` (Bearer + admin)
+
+Fluxo:
+1. `register` recebe `nome`, `email`, `senha` e opcionalmente `is_admin`.
+2. A senha é armazenada somente como `senha_hash` usando bcrypt.
+3. `login` retorna `access_token`.
+4. O frontend envia `Authorization: Bearer <access_token>`.
+5. `get_current_user` valida o JWT e consulta o usuário no PostgreSQL.
+6. `get_current_admin` bloqueia usuários que não possuem `is_admin=true`.
+
+Antes de executar em produção, altere `JWT_SECRET_KEY`.

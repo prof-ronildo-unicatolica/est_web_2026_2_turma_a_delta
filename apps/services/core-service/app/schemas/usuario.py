@@ -1,4 +1,13 @@
-from pydantic import BaseModel
+from uuid import UUID
+
+from pydantic import BaseModel, ConfigDict, Field
+
+
+class UsuarioCreate(BaseModel):
+    nome: str = Field(min_length=2, max_length=100)
+    email: str = Field(min_length=3, max_length=100)
+    senha: str = Field(min_length=8, max_length=128)
+    is_admin: bool = False
 
 
 class LoginRequest(BaseModel):
@@ -12,8 +21,11 @@ class Token(BaseModel):
 
 
 class UsuarioPublic(BaseModel):
-    """Perfil publico do usuario (nunca expoe senha)."""
+    """Dados públicos do usuário; nunca expõe senha ou senha_hash."""
 
-    email: str
+    model_config = ConfigDict(from_attributes=True)
+
+    id: UUID
     nome: str
+    email: str
     is_admin: bool
