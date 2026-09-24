@@ -1,11 +1,9 @@
-const ESTILOS_POR_STATUS = {
-  Pendente: 'bg-warning text-dark',
-  Confirmada: 'bg-success',
-  Cancelada: 'bg-danger',
-  Concluída: 'bg-secondary',
+const ESTILOS = {
+  Pendente: 'text-bg-warning',
+  Confirmada: 'text-bg-success',
+  Cancelada: 'text-bg-danger',
 }
 
 export default function StatusBadge({ status }) {
-  const classe = ESTILOS_POR_STATUS[status] || 'bg-secondary'
-  return <span className={`badge ${classe}`}>{status}</span>
+  return <span className={`badge status-badge ${ESTILOS[status] || 'text-bg-secondary'}`}>{status}</span>
 }
