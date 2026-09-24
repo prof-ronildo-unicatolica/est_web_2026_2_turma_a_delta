@@ -5,7 +5,7 @@ from sqlalchemy.orm import sessionmaker
 
 from app.core.database import get_db
 from app.main import app
-from app.models.base import Base
+from app.models.tutorial import Base
 
 # Banco SQLite em arquivo temporario para os testes
 SQLALCHEMY_DATABASE_URL = "sqlite:///./test.db"

@@ -15,10 +15,6 @@ class Settings(BaseSettings):
     POSTGRES_DB: str = "hotel_db_dev"
     POSTGRES_PORT: str = "5432"
 
-    JWT_SECRET_KEY: str = "chave-dev-trocar-em-producao"
-    JWT_ALGORITHM: str = "HS256"
-    JWT_EXPIRE_MINUTES: int = 60
-
     @property
     def SQLALCHEMY_DATABASE_URI(self) -> str:
         return f"postgresql://{self.POSTGRES_USER}:{self.POSTGRES_PASSWORD}@{self.POSTGRES_SERVER}:{self.POSTGRES_PORT}/{self.POSTGRES_DB}"

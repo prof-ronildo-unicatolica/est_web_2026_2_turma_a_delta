@@ -4,41 +4,27 @@ from sqlalchemy import engine_from_config, pool
 
 from alembic import context
 
+# Importar modelos e configurações
 from app.core.config import settings
-from app.models.base import Base
+from app.models.tutorial import Base
 
-from app.models.usuario import Usuario
-from app.models.cidade import Cidade
-from app.models.hotel import Hotel
-from app.models.quarto import Quarto
-from app.models.tarifa_temporada import TarifaTemporada
-from app.models.comodidade import Comodidade
-from app.models.hotel_comodidade import HotelComodidade
-from app.models.reserva import Reserva
-from app.models.avaliacao import Avaliacao
-from app.models.servico_adicional import ServicoAdicional
-from app.models.reserva_servico import ReservaServico
-
-
+# Objeto de configuração do Alembic
 config = context.config
 
-
+# Configurar o sistema de logs
 if config.config_file_name is not None:
     fileConfig(config.config_file_name)
 
+# Definir a URL do banco de dados dinamicamente a partir das Configurações
+config.set_main_option("sqlalchemy.url", settings.SQLALCHEMY_DATABASE_URI)
 
-config.set_main_option(
-    "sqlalchemy.url",
-    settings.SQLALCHEMY_DATABASE_URI,
-)
-
-
+# Objeto Metadata para geração automática de migrações
 target_metadata = Base.metadata
 
 
 def run_migrations_offline() -> None:
+    """Run migrations in 'offline' mode."""
     url = config.get_main_option("sqlalchemy.url")
-
     context.configure(
         url=url,
         target_metadata=target_metadata,
@@ -51,6 +37,7 @@ def run_migrations_offline() -> None:
 
 
 def run_migrations_online() -> None:
+    """Run migrations in 'online' mode."""
     connectable = engine_from_config(
         config.get_section(config.config_ini_section, {}),
         prefix="sqlalchemy.",
@@ -58,10 +45,7 @@ def run_migrations_online() -> None:
     )
 
     with connectable.connect() as connection:
-        context.configure(
-            connection=connection,
-            target_metadata=target_metadata,
-        )
+        context.configure(connection=connection, target_metadata=target_metadata)
 
         with context.begin_transaction():
             context.run_migrations()
