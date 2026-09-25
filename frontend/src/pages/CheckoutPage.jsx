@@ -1,284 +1,406 @@
-import { useEffect, useMemo, useState } from 'react'
-import { useNavigate, useParams, useSearchParams } from 'react-router-dom'
-import { getQuartoById, getHotelById, mockServicosOpcionais } from '../data/mockData'
-import { calcularOrcamento, formatarMoeda } from '../services/pricing'
-import { criarReserva } from '../services/reservasService'
-import { useAuth } from '../context/AuthContext'
+import { useMemo, useState } from 'react'
+import { catalogoApi, reservasApi } from '../api/services'
+import useFetch from '../hooks/useFetch'
+import { Link } from '../router/Router'
+import { useNavigate, useSearchParams } from '../router/hooks'
+import { asList, normalizeHotel, normalizeServico, normalizeTarifa, saveReservaSnapshot } from '../utils/catalog'
+import { brl, formatDate, todayISO } from '../utils/format'
+import { TARIFA, addDays, calcularOrcamento } from '../utils/pricing'
+import Counter from '../components/Counter'
+import ErrorAlert from '../components/ErrorAlert'
+import { BlockSkeleton } from '../components/Skeletons'
+
+const int = (v, d) => (v === null || Number.isNaN(Number(v)) ? d : Number(v))
+const pct = (m) => `${m >= 1 ? '+' : '−'}${Math.abs(Math.round((m - 1) * 100))}%`
 
 export default function CheckoutPage() {
-  const { quartoId } = useParams()
-  const [searchParams] = useSearchParams()
+  const [params] = useSearchParams()
   const navigate = useNavigate()
-  const { usuario } = useAuth()
+  const hotelId = params.get('hotel')
+  const quartoId = params.get('quarto')
 
-  const quarto = getQuartoById(quartoId)
-  const hotel = quarto ? getHotelById(quarto.hotelId) : null
+  const catalogo = useFetch(async () => {
+    const [hotel, tarifas, servicos] = await Promise.all([
+      catalogoApi.hotel(hotelId),
+      catalogoApi.tarifas(hotelId),
+      catalogoApi.servicos(),
+    ])
+    return {
+      hotel: normalizeHotel(hotel),
+      tarifas: asList(tarifas).map(normalizeTarifa),
+      servicos: asList(servicos).map(normalizeServico),
+    }
+  }, [hotelId])
 
-  const [checkin, setCheckin] = useState(searchParams.get('checkin') || '')
-  const [checkout, setCheckout] = useState(searchParams.get('checkout') || '')
-  const [adultos, setAdultos] = useState(quarto?.capacidadeAdultos || 1)
-  const [idadesCriancas, setIdadesCriancas] = useState([])
-  const [tipoTarifa, setTipoTarifa] = useState('reembolsavel')
-  const [earlyCheckin, setEarlyCheckin] = useState(false)
-  const [lateCheckout, setLateCheckout] = useState(false)
-  const [servicosSelecionados, setServicosSelecionados] = useState([])
+  const [form, setForm] = useState(() => ({
+    checkin: params.get('checkin') || '',
+    checkout: params.get('checkout') || '',
+    adultos: int(params.get('adultos'), 2),
+    criancas: int(params.get('criancas'), 0),
+    bebes: int(params.get('bebes'), 0),
+  }))
+  const [early, setEarly] = useState(false)
+  const [late, setLate] = useState(false)
+  const [berco, setBerco] = useState(false)
+  const [tarifaTipo, setTarifaTipo] = useState(TARIFA.REEMBOLSAVEL)
+  const [qtdServicos, setQtdServicos] = useState({})
   const [enviando, setEnviando] = useState(false)
-  const [erro, setErro] = useState(null)
+  const [erroEnvio, setErroEnvio] = useState(null)
+  const hoje = todayISO()
 
-  useEffect(() => {
-    document.title = 'Checkout - Rede Hoteleira'
-  }, [])
+  const hotel = catalogo.data?.hotel
+  const tarifas = useMemo(() => catalogo.data?.tarifas ?? [], [catalogo.data])
+  const servicosCatalogo = useMemo(() => catalogo.data?.servicos ?? [], [catalogo.data])
+  const quarto = hotel?.quartos.find((q) => String(q.id) === String(quartoId))
+  const bercoEfetivo = berco && form.bebes > 0
 
   const orcamento = useMemo(
     () =>
       calcularOrcamento({
         quarto,
-        checkin,
-        checkout,
-        tipoTarifa,
-        hospedes: { adultos, criancas: idadesCriancas },
-        adicionais: { earlyCheckin, lateCheckout },
-        servicosSelecionados,
+        checkin: form.checkin,
+        checkout: form.checkout,
+        criancas: form.criancas,
+        earlyCheckin: early,
+        lateCheckout: late,
+        tarifaTipo,
+        tarifas,
+        servicos: servicosCatalogo.map((s) => ({ servico: s, quantidade: qtdServicos[s.id] || 0 })),
       }),
-    [quarto, checkin, checkout, tipoTarifa, adultos, idadesCriancas, earlyCheckin, lateCheckout, servicosSelecionados]
+    [quarto, form.checkin, form.checkout, form.criancas, early, late, tarifaTipo, tarifas, servicosCatalogo, qtdServicos],
   )
 
-  if (!quarto || !hotel) {
-    return <div className="alert alert-danger">Quarto não encontrado.</div>
+  const set = (campo, valor) => setForm((f) => ({ ...f, [campo]: valor }))
+
+  if (!hotelId || !quartoId) {
+    return (
+      <div className="container py-4">
+        <ErrorAlert error="Nenhum quarto selecionado. Escolha um quarto para reservar." />
+        <Link to="/" className="btn btn-primary">
+          Buscar hotéis
+        </Link>
+      </div>
+    )
+  }
+  if (catalogo.loading) {
+    return (
+      <div className="container py-4">
+        <BlockSkeleton height={320} />
+      </div>
+    )
+  }
+  if (catalogo.error || !quarto) {
+    return (
+      <div className="container py-4">
+        <ErrorAlert error={catalogo.error || 'Quarto não encontrado neste hotel.'} onRetry={catalogo.error ? catalogo.reload : undefined} />
+        <Link to={`/hoteis/${hotelId}`} className="btn btn-outline-primary">
+          Voltar ao hotel
+        </Link>
+      </div>
+    )
   }
 
-  function toggleServico(id) {
-    setServicosSelecionados((atual) => (atual.includes(id) ? atual.filter((s) => s !== id) : [...atual, id]))
-  }
+  const erros = []
+  if (!form.checkin || !form.checkout) erros.push('Informe as datas de check-in e check-out.')
+  else if (form.checkin < hoje) erros.push('O check-in não pode ser no passado.')
+  else if (form.checkout <= form.checkin) erros.push('O check-out deve ser depois do check-in.')
+  if (form.adultos > quarto.max_adultos) erros.push(`Este quarto comporta no máximo ${quarto.max_adultos} adulto(s).`)
+  if (form.criancas > quarto.max_criancas) erros.push(`Este quarto comporta no máximo ${quarto.max_criancas} criança(s).`)
+  const podeReservar = erros.length === 0 && orcamento && !enviando
 
-  function alterarQuantidadeCriancas(qtd) {
-    const nova = Array.from({ length: qtd }, (_, i) => idadesCriancas[i] ?? 8)
-    setIdadesCriancas(nova)
-  }
-
-  async function handleConfirmar(e) {
-    e.preventDefault()
-    if (!checkin || !checkout) {
-      setErro('Selecione as datas de check-in e check-out.')
-      return
-    }
-    if (orcamento.diarias <= 0) {
-      setErro('O check-out deve ser depois do check-in.')
-      return
-    }
-
-    setErro(null)
+  async function confirmar() {
+    if (!podeReservar) return
     setEnviando(true)
+    setErroEnvio(null)
     try {
-      const dataLimiteCancelamento = new Date(checkin)
-      dataLimiteCancelamento.setDate(dataLimiteCancelamento.getDate() - 2)
-
-      const reserva = await criarReserva({
-        usuarioEmail: usuario?.email || 'convidado@teste.com',
-        hotelId: hotel.id,
-        quartoId: quarto.id,
-        checkin,
-        checkout,
-        tipoTarifa,
-        valorTotal: orcamento.total,
-        dataLimiteCancelamento:
-          tipoTarifa === 'reembolsavel' ? dataLimiteCancelamento.toISOString().slice(0, 10) : null,
+      const reserva = await reservasApi.criar({
+        quarto_id: quarto.id,
+        data_checkin: form.checkin,
+        data_checkout: form.checkout,
+        quantidade_adultos: form.adultos,
+        quantidade_criancas: form.criancas,
+        quantidade_bebes: form.bebes,
+        early_checkin: early,
+        late_checkout: late,
+        necessita_berco: bercoEfetivo,
+        tarifa_tipo: tarifaTipo,
+        servicos: servicosCatalogo
+          .filter((s) => (qtdServicos[s.id] || 0) > 0)
+          .map((s) => ({ servico_id: s.id, quantidade: qtdServicos[s.id] })),
       })
-      navigate(`/reservas/${reserva.id}/processando`)
+      saveReservaSnapshot(reserva.id, {
+        hotel_id: hotel.id,
+        hotel_nome: hotel.nome,
+        quarto_numero: quarto.numero,
+        quarto_tipo: quarto.tipo,
+        preco_diaria: quarto.preco_diaria,
+        valor_estimado: orcamento.total,
+        data_checkin: form.checkin,
+        data_checkout: form.checkout,
+        quantidade_adultos: form.adultos,
+        quantidade_criancas: form.criancas,
+        quantidade_bebes: form.bebes,
+        tarifa_tipo: tarifaTipo,
+        data_limite_cancelamento: orcamento.dataLimiteCancelamento,
+      })
+      navigate(`/reservas/${reserva.id}`)
     } catch (err) {
-      setErro(err.message)
-    } finally {
+      setErroEnvio(err)
       setEnviando(false)
     }
   }
 
   return (
-    <>
-      <h2 className="fw-bold mb-4">Checkout</h2>
+    <div className="container py-4">
+      <nav className="mb-3">
+        <Link to={`/hoteis/${hotelId}`} className="small">
+          ← Voltar ao hotel
+        </Link>
+      </nav>
+      <h1 className="h3 mb-4">Finalizar reserva</h1>
+
       <div className="row g-4">
         <div className="col-lg-7">
-          <form onSubmit={handleConfirmar}>
-            <div className="card shadow-sm mb-3">
-              <div className="card-body">
-                <h5 className="card-title">Resumo da estadia</h5>
-                <p className="mb-1"><strong>{hotel.nome}</strong> — Quarto {quarto.numero} ({quarto.tipo})</p>
-                <div className="row g-3 mt-2">
-                  <div className="col-6">
-                    <label className="form-label">Check-in</label>
-                    <input type="date" className="form-control" value={checkin} onChange={(e) => setCheckin(e.target.value)} required />
-                  </div>
-                  <div className="col-6">
-                    <label className="form-label">Check-out</label>
-                    <input type="date" className="form-control" value={checkout} onChange={(e) => setCheckout(e.target.value)} required />
-                  </div>
-                  <div className="col-6">
-                    <label className="form-label">Adultos</label>
-                    <input type="number" min={1} className="form-control" value={adultos} onChange={(e) => setAdultos(Number(e.target.value))} />
-                  </div>
-                  <div className="col-6">
-                    <label className="form-label">Crianças</label>
-                    <input
-                      type="number"
-                      min={0}
-                      className="form-control"
-                      value={idadesCriancas.length}
-                      onChange={(e) => alterarQuantidadeCriancas(Number(e.target.value))}
-                    />
-                  </div>
-                </div>
-                {idadesCriancas.length > 0 && (
-                  <div className="row g-2 mt-1">
-                    {idadesCriancas.map((idade, i) => (
-                      <div className="col-3" key={i}>
-                        <label className="form-label small">Idade criança {i + 1}</label>
-                        <input
-                          type="number"
-                          min={0}
-                          max={17}
-                          className="form-control form-control-sm"
-                          value={idade}
-                          onChange={(e) => {
-                            const novas = [...idadesCriancas]
-                            novas[i] = Number(e.target.value)
-                            setIdadesCriancas(novas)
-                          }}
-                        />
-                      </div>
-                    ))}
-                  </div>
-                )}
+          <section className="panel" aria-labelledby="h-estadia">
+            <h2 id="h-estadia" className="h5">
+              Estadia
+            </h2>
+            <div className="row g-3">
+              <div className="col-6">
+                <label htmlFor="c-checkin" className="form-label">
+                  Check-in
+                </label>
+                <input
+                  id="c-checkin"
+                  type="date"
+                  className="form-control"
+                  min={hoje}
+                  value={form.checkin}
+                  onChange={(e) => {
+                    const v = e.target.value
+                    setForm((f) => ({ ...f, checkin: v, checkout: f.checkout && f.checkout <= v ? addDays(v, 1) : f.checkout }))
+                  }}
+                />
+              </div>
+              <div className="col-6">
+                <label htmlFor="c-checkout" className="form-label">
+                  Check-out
+                </label>
+                <input
+                  id="c-checkout"
+                  type="date"
+                  className="form-control"
+                  min={form.checkin ? addDays(form.checkin, 1) : hoje}
+                  value={form.checkout}
+                  onChange={(e) => set('checkout', e.target.value)}
+                />
+              </div>
+              <div className="col-4">
+                <Counter id="c-adultos" label="Adultos" min={1} max={quarto.max_adultos} value={form.adultos} onChange={(v) => set('adultos', v)} hint={`máx. ${quarto.max_adultos}`} />
+              </div>
+              <div className="col-4">
+                <Counter id="c-criancas" label="Crianças" max={quarto.max_criancas} value={form.criancas} onChange={(v) => set('criancas', v)} hint={`6 a 12 anos, máx. ${quarto.max_criancas}`} />
+              </div>
+              <div className="col-4">
+                <Counter id="c-bebes" label="Bebês" max={4} value={form.bebes} onChange={(v) => set('bebes', v)} hint="0 a 5 anos, grátis" />
               </div>
             </div>
+          </section>
 
-            <div className="card shadow-sm mb-3">
-              <div className="card-body">
-                <h5 className="card-title">Política de cancelamento</h5>
-                <div className="form-check">
-                  <input
-                    className="form-check-input"
-                    type="radio"
-                    name="tipoTarifa"
-                    id="tarifaReembolsavel"
-                    checked={tipoTarifa === 'reembolsavel'}
-                    onChange={() => setTipoTarifa('reembolsavel')}
-                  />
-                  <label className="form-check-label" htmlFor="tarifaReembolsavel">
-                    Reembolsável (preço normal, cancelamento grátis até 48h antes do check-in)
-                  </label>
-                </div>
-                <div className="form-check">
-                  <input
-                    className="form-check-input"
-                    type="radio"
-                    name="tipoTarifa"
-                    id="tarifaNaoReembolsavel"
-                    checked={tipoTarifa === 'nao_reembolsavel'}
-                    onChange={() => setTipoTarifa('nao_reembolsavel')}
-                  />
-                  <label className="form-check-label" htmlFor="tarifaNaoReembolsavel">
-                    Não reembolsável (10% de desconto, sem devolução)
-                  </label>
-                </div>
-              </div>
+          <section className="panel" aria-labelledby="h-tarifa">
+            <h2 id="h-tarifa" className="h5">
+              Tarifa
+            </h2>
+            <div className="form-check option-check">
+              <input className="form-check-input" type="radio" name="tarifa" id="t-reemb" checked={tarifaTipo === TARIFA.REEMBOLSAVEL} onChange={() => setTarifaTipo(TARIFA.REEMBOLSAVEL)} />
+              <label className="form-check-label" htmlFor="t-reemb">
+                <strong>Reembolsável</strong>
+                <span className="d-block text-secondary small">
+                  Cancelamento grátis até 48h antes do check-in
+                  {form.checkin ? ` (até ${formatDate(addDays(form.checkin, -2))})` : ''}. Depois disso, multa de 1 diária.
+                </span>
+              </label>
             </div>
+            <div className="form-check option-check">
+              <input className="form-check-input" type="radio" name="tarifa" id="t-nao" checked={tarifaTipo === TARIFA.NAO_REEMBOLSAVEL} onChange={() => setTarifaTipo(TARIFA.NAO_REEMBOLSAVEL)} />
+              <label className="form-check-label" htmlFor="t-nao">
+                <strong>Não reembolsável</strong> <span className="badge text-bg-success">10% de desconto</span>
+                <span className="d-block text-secondary small">Em caso de cancelamento, 100% do valor é retido.</span>
+              </label>
+            </div>
+          </section>
 
-            <div className="card shadow-sm mb-3">
-              <div className="card-body">
-                <h5 className="card-title">Adicionais e serviços</h5>
-                <div className="form-check">
-                  <input className="form-check-input" type="checkbox" id="earlyCheckin" checked={earlyCheckin} onChange={(e) => setEarlyCheckin(e.target.checked)} />
-                  <label className="form-check-label" htmlFor="earlyCheckin">Early Check-in (+30% de 1 diária)</label>
-                </div>
-                <div className="form-check mb-2">
-                  <input className="form-check-input" type="checkbox" id="lateCheckout" checked={lateCheckout} onChange={(e) => setLateCheckout(e.target.checked)} />
-                  <label className="form-check-label" htmlFor="lateCheckout">Late Checkout (+30% de 1 diária)</label>
-                </div>
-                <hr />
-                {mockServicosOpcionais
-                  .filter((s) => s.preco != null)
-                  .map((servico) => (
-                    <div className="form-check" key={servico.id}>
+          <section className="panel" aria-labelledby="h-opcionais">
+            <h2 id="h-opcionais" className="h5">
+              Opcionais
+            </h2>
+            <div className="form-check option-check">
+              <input className="form-check-input" type="checkbox" id="o-early" checked={early} onChange={(e) => setEarly(e.target.checked)} />
+              <label className="form-check-label" htmlFor="o-early">
+                <strong>Early check-in</strong> (entrada a partir das 08h)
+                <span className="d-block text-secondary small">+30% de uma diária ({brl(quarto.preco_diaria * 0.3)})</span>
+              </label>
+            </div>
+            <div className="form-check option-check">
+              <input className="form-check-input" type="checkbox" id="o-late" checked={late} onChange={(e) => setLate(e.target.checked)} />
+              <label className="form-check-label" htmlFor="o-late">
+                <strong>Late checkout</strong> (saída até as 18h)
+                <span className="d-block text-secondary small">+30% de uma diária ({brl(quarto.preco_diaria * 0.3)})</span>
+              </label>
+            </div>
+            <div className="form-check option-check">
+              <input className="form-check-input" type="checkbox" id="o-berco" checked={bercoEfetivo} disabled={form.bebes < 1} onChange={(e) => setBerco(e.target.checked)} />
+              <label className="form-check-label" htmlFor="o-berco">
+                <strong>Berço no quarto</strong>
+                <span className="d-block text-secondary small">
+                  {form.bebes < 1 ? 'Disponível quando houver bebê (0 a 5 anos) na reserva.' : 'Sem custo adicional.'}
+                </span>
+              </label>
+            </div>
+          </section>
+
+          {servicosCatalogo.length > 0 && (
+            <section className="panel" aria-labelledby="h-servicos">
+              <h2 id="h-servicos" className="h5">
+                Serviços adicionais
+              </h2>
+              {servicosCatalogo.map((s) => {
+                const qtd = qtdServicos[s.id] || 0
+                return (
+                  <div key={s.id} className="d-flex justify-content-between align-items-center gap-3 service-row">
+                    <div className="form-check mb-0">
                       <input
                         className="form-check-input"
                         type="checkbox"
-                        id={servico.id}
-                        checked={servicosSelecionados.includes(servico.id)}
-                        onChange={() => toggleServico(servico.id)}
+                        id={`s-${s.id}`}
+                        checked={qtd > 0}
+                        onChange={(e) => setQtdServicos((m) => ({ ...m, [s.id]: e.target.checked ? 1 : 0 }))}
                       />
-                      <label className="form-check-label" htmlFor={servico.id}>
-                        {servico.nome} ({formatarMoeda(servico.preco)} {servico.unidade})
+                      <label className="form-check-label" htmlFor={`s-${s.id}`}>
+                        {s.nome} <span className="text-secondary small">({brl(s.preco)} cada)</span>
                       </label>
                     </div>
+                    {qtd > 0 && (
+                      <div className="input-group input-group-sm qty">
+                        <button type="button" className="btn btn-outline-secondary" aria-label={`Diminuir ${s.nome}`} onClick={() => setQtdServicos((m) => ({ ...m, [s.id]: Math.max(1, qtd - 1) }))}>
+                          −
+                        </button>
+                        <span className="input-group-text" aria-label={`Quantidade de ${s.nome}`}>
+                          {qtd}
+                        </span>
+                        <button type="button" className="btn btn-outline-secondary" aria-label={`Aumentar ${s.nome}`} onClick={() => setQtdServicos((m) => ({ ...m, [s.id]: qtd + 1 }))}>
+                          +
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                )
+              })}
+            </section>
+          )}
+        </div>
+
+        <aside className="col-lg-5">
+          <div className="panel summary" aria-live="polite">
+            <h2 className="h5 mb-1">{hotel.nome}</h2>
+            <p className="text-secondary mb-3">
+              Quarto {quarto.numero}, {quarto.tipo}
+            </p>
+
+            {orcamento ? (
+              <>
+                <p className="small text-secondary">
+                  {formatDate(form.checkin)} a {formatDate(form.checkout)} ({orcamento.noites} {orcamento.noites === 1 ? 'diária' : 'diárias'})
+                </p>
+                <dl className="price-lines">
+                  {orcamento.grupos.map((g, i) => (
+                    <div key={i} className="price-line">
+                      <dt>
+                        {g.noites} × {brl(g.valor)}
+                        {g.tarifa && (
+                          <span className="d-block small text-secondary">
+                            Diária base {brl(orcamento.base)} | {g.tarifa.nome} ({pct(g.multiplicador)})
+                          </span>
+                        )}
+                      </dt>
+                      <dd>{brl(g.noites * g.valor)}</dd>
+                    </div>
                   ))}
-              </div>
-            </div>
-
-            {erro && <div className="alert alert-danger">{erro}</div>}
-
-            <button type="submit" className="btn btn-primary btn-lg w-100" disabled={enviando}>
-              {enviando ? 'Enviando reserva...' : 'Confirmar e Pagar'}
-            </button>
-          </form>
-        </div>
-
-        <div className="col-lg-5">
-          <div className="card shadow-sm sticky-top" style={{ top: '5rem' }}>
-            <div className="card-body">
-              <h5 className="card-title">Resumo do valor</h5>
-              <ul className="list-group list-group-flush small">
-                <li className="list-group-item d-flex justify-content-between">
-                  <span>Diária base</span>
-                  <span>{formatarMoeda(orcamento.diariaBase)}</span>
-                </li>
-                {orcamento.multiplicadorTemporada > 1 && (
-                  <li className="list-group-item d-flex justify-content-between text-warning">
-                    <span>Alta temporada ({orcamento.tarifaTemporadaAplicada?.nome}) x{orcamento.multiplicadorTemporada}</span>
-                    <span>{formatarMoeda(orcamento.diariaAjustada)}</span>
-                  </li>
-                )}
-                <li className="list-group-item d-flex justify-content-between">
-                  <span>{orcamento.diarias} diária(s)</span>
-                  <span>{formatarMoeda(orcamento.subtotalDiarias)}</span>
-                </li>
-                {orcamento.totalHospedesExtras > 0 && (
-                  <li className="list-group-item d-flex justify-content-between">
-                    <span>Hóspedes extras</span>
-                    <span>{formatarMoeda(orcamento.totalHospedesExtras)}</span>
-                  </li>
-                )}
-                {orcamento.valorEarlyCheckin > 0 && (
-                  <li className="list-group-item d-flex justify-content-between">
-                    <span>Early check-in</span>
-                    <span>{formatarMoeda(orcamento.valorEarlyCheckin)}</span>
-                  </li>
-                )}
-                {orcamento.valorLateCheckout > 0 && (
-                  <li className="list-group-item d-flex justify-content-between">
-                    <span>Late checkout</span>
-                    <span>{formatarMoeda(orcamento.valorLateCheckout)}</span>
-                  </li>
-                )}
-                {orcamento.valorServicos > 0 && (
-                  <li className="list-group-item d-flex justify-content-between">
-                    <span>Serviços opcionais</span>
-                    <span>{formatarMoeda(orcamento.valorServicos)}</span>
-                  </li>
-                )}
-                {orcamento.descontoNaoReembolsavel > 0 && (
-                  <li className="list-group-item d-flex justify-content-between text-success">
-                    <span>Desconto não-reembolsável</span>
-                    <span>- {formatarMoeda(orcamento.descontoNaoReembolsavel)}</span>
-                  </li>
-                )}
-                <li className="list-group-item d-flex justify-content-between fw-bold fs-5">
+                  {orcamento.taxaCriancas > 0 && (
+                    <div className="price-line">
+                      <dt>
+                        {form.criancas} {form.criancas === 1 ? 'criança' : 'crianças'} (50% da diária)
+                      </dt>
+                      <dd>{brl(orcamento.taxaCriancas)}</dd>
+                    </div>
+                  )}
+                  {form.bebes > 0 && (
+                    <div className="price-line text-secondary">
+                      <dt>
+                        {form.bebes} {form.bebes === 1 ? 'bebê' : 'bebês'}
+                      </dt>
+                      <dd>Grátis</dd>
+                    </div>
+                  )}
+                  {orcamento.early > 0 && (
+                    <div className="price-line">
+                      <dt>Early check-in (+30%)</dt>
+                      <dd>{brl(orcamento.early)}</dd>
+                    </div>
+                  )}
+                  {orcamento.late > 0 && (
+                    <div className="price-line">
+                      <dt>Late checkout (+30%)</dt>
+                      <dd>{brl(orcamento.late)}</dd>
+                    </div>
+                  )}
+                  {orcamento.servicos.map((s) => (
+                    <div key={s.id} className="price-line">
+                      <dt>
+                        {s.nome} × {s.quantidade}
+                      </dt>
+                      <dd>{brl(s.total)}</dd>
+                    </div>
+                  ))}
+                  {orcamento.desconto > 0 && (
+                    <div className="price-line text-success">
+                      <dt>Desconto não reembolsável (−10%)</dt>
+                      <dd>− {brl(orcamento.desconto)}</dd>
+                    </div>
+                  )}
+                </dl>
+                <div className="price-total">
                   <span>Total estimado</span>
-                  <span>{formatarMoeda(orcamento.total)}</span>
-                </li>
+                  <strong>{brl(orcamento.total)}</strong>
+                </div>
+                {orcamento.dataLimiteCancelamento && (
+                  <p className="small text-secondary mt-2 mb-0">
+                    Cancelamento sem multa até {formatDate(orcamento.dataLimiteCancelamento)}.
+                  </p>
+                )}
+              </>
+            ) : (
+              <p className="text-secondary">Escolha as datas para ver o valor da estadia.</p>
+            )}
+
+            {erros.length > 0 && (
+              <ul className="alert alert-warning small mt-3 mb-0 ps-4" role="alert">
+                {erros.map((e) => (
+                  <li key={e}>{e}</li>
+                ))}
               </ul>
-            </div>
+            )}
+            <ErrorAlert error={erroEnvio} className="mt-3 mb-0" />
+
+            <button type="button" className="btn btn-primary w-100 mt-3" disabled={!podeReservar} onClick={confirmar}>
+              {enviando ? 'Enviando...' : 'Confirmar e pagar'}
+            </button>
+            <p className="small text-secondary mt-2 mb-0">
+              O valor final é confirmado pelo sistema ao processar a reserva.
+            </p>
           </div>
-        </div>
+        </aside>
       </div>
-    </>
+    </div>
   )
 }

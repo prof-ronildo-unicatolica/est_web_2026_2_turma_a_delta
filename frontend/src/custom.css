@@ -1,4 +1,142 @@
-/* 
-  Arquivo CSS para personalizacao propria dos alunos.
-  Adicione suas regras CSS personalizadas aqui!
-*/
+/* ───────────────────────────────────────────────────────────────
+   Identidade visual — Rede Hoteleira
+   Base Bootstrap 5 com tokens próprios (mar, areia clara e ouro das estrelas).
+   ─────────────────────────────────────────────────────────────── */
+:root {
+  --ink: #12303a;
+  --sea: #0b6477;
+  --sea-dark: #084e5d;
+  --deep: #0b3a44;
+  --mist: #f3f6f6;
+  --line: #dbe4e6;
+  --gold: #c8951f;
+
+  --bs-primary: var(--sea);
+  --bs-primary-rgb: 11, 100, 119;
+  --bs-link-color: var(--sea);
+  --bs-link-color-rgb: 11, 100, 119;
+  --bs-link-hover-color: var(--sea-dark);
+  --bs-body-color: var(--ink);
+  --bs-body-bg: var(--mist);
+  --bs-body-font-family: 'Figtree', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  --bs-border-color: var(--line);
+  --bs-border-radius: 0.5rem;
+  --bs-focus-ring-color: rgba(11, 100, 119, 0.3);
+}
+
+h1, h2, h3, h4, h5, .brand, .hero-title { font-family: 'Fraunces', Georgia, 'Times New Roman', serif; font-weight: 600; letter-spacing: -0.01em; }
+h5, h6, .h5, .h6 { font-family: var(--bs-body-font-family); font-weight: 600; letter-spacing: 0; }
+
+.btn-primary {
+  --bs-btn-bg: var(--sea); --bs-btn-border-color: var(--sea);
+  --bs-btn-hover-bg: var(--sea-dark); --bs-btn-hover-border-color: var(--sea-dark);
+  --bs-btn-active-bg: var(--sea-dark); --bs-btn-active-border-color: var(--sea-dark);
+  --bs-btn-disabled-bg: var(--sea); --bs-btn-disabled-border-color: var(--sea);
+  --bs-btn-focus-shadow-rgb: 11, 100, 119;
+}
+.btn-outline-primary {
+  --bs-btn-color: var(--sea); --bs-btn-border-color: var(--sea);
+  --bs-btn-hover-bg: var(--sea); --bs-btn-hover-border-color: var(--sea);
+  --bs-btn-active-bg: var(--sea); --bs-btn-active-border-color: var(--sea);
+  --bs-btn-disabled-color: var(--sea); --bs-btn-disabled-border-color: var(--sea);
+}
+.text-primary { color: var(--sea) !important; }
+.nav-tabs .nav-link { color: var(--bs-secondary-color); }
+.nav-tabs .nav-link.active { color: var(--sea); font-weight: 600; }
+:focus-visible { outline: 3px solid rgba(11, 100, 119, 0.55); outline-offset: 2px; }
+
+/* Estrutura */
+.app-shell { min-height: 100vh; display: flex; flex-direction: column; }
+.app-main { flex: 1 0 auto; }
+.app-navbar { background: var(--deep); }
+.brand { font-size: 1.35rem; }
+.app-footer { border-top: 1px solid var(--line); background: #fff; }
+.dot { width: 0.6rem; height: 0.6rem; border-radius: 50%; display: inline-block; }
+.dot-ok { background: #2e9e6b; } .dot-off { background: #c94b4b; } .dot-wait { background: #b8c4c7; }
+
+/* Hero + painel de busca (elemento de destaque da Home) */
+.hero { background: var(--deep); color: #fff; padding: 3rem 0 6.5rem; }
+.hero-title { font-size: clamp(1.9rem, 4.5vw, 3rem); max-width: 16ch; line-height: 1.1; margin-bottom: 0.75rem; }
+.hero-sub { color: rgba(255, 255, 255, 0.75); max-width: 46ch; margin: 0; }
+.search-wrap { margin-top: -4.5rem; position: relative; z-index: 2; }
+.search-panel { background: #fff; border: 1px solid var(--line); border-radius: 0.9rem; padding: 1.25rem; box-shadow: 0 12px 32px rgba(11, 58, 68, 0.14); }
+.counter .form-control { max-width: 3.2rem; background: #fff; }
+.counter .btn { min-width: 2.4rem; }
+
+/* Blocos e cartões */
+.panel { background: #fff; border: 1px solid var(--line); border-radius: 0.75rem; padding: 1.25rem; margin-bottom: 1.25rem; }
+.panel.p-0 { margin-bottom: 0; }
+.hotel-card { border: 1px solid var(--line); border-radius: 0.75rem; overflow: hidden; }
+.hotel-cover { height: 150px; display: grid; place-items: center; color: rgba(255, 255, 255, 0.35); font-family: 'Fraunces', Georgia, serif; font-size: 3.5rem; }
+.chip { display: inline-block; background: var(--mist); border: 1px solid var(--line); border-radius: 999px; padding: 0.1rem 0.6rem; font-size: 0.78rem; }
+.chip-lg { font-size: 0.9rem; padding: 0.25rem 0.8rem; background: #fff; }
+.stars { color: var(--gold); letter-spacing: 0.08em; }
+.stars-off { color: #d3dadc; }
+.status-badge { font-weight: 600; font-size: 0.8rem; }
+.empty-state { text-align: center; border: 1px dashed #b9c8cb; border-radius: 0.75rem; padding: 2.5rem 1rem; background: #fff; }
+
+/* Detalhe do hotel */
+.detail-header { display: grid; grid-template-columns: 1fr; gap: 1rem; background: #fff; border: 1px solid var(--line); border-radius: 0.75rem; overflow: hidden; }
+.detail-cover { height: 170px; }
+.detail-info { padding: 0 1.25rem 1.25rem; }
+.room-item { display: grid; grid-template-columns: 1fr; gap: 0.75rem; padding: 1rem 1.25rem; align-items: center; }
+.room-list { border-radius: 0.75rem; overflow: hidden; }
+
+/* Checkout */
+.option-check { padding: 0.75rem 0.75rem 0.75rem 2.5rem; border: 1px solid var(--line); border-radius: 0.5rem; margin-bottom: 0.5rem; }
+.option-check .form-check-input { margin-top: 0.3rem; }
+.option-check:has(input:checked) { border-color: var(--sea); background: rgba(11, 100, 119, 0.05); }
+.service-row { padding: 0.4rem 0; border-bottom: 1px solid var(--line); }
+.service-row:last-child { border-bottom: 0; }
+.qty { width: 8rem; }
+.summary { position: static; }
+.price-lines { margin: 0; }
+.price-line { display: flex; justify-content: space-between; gap: 1rem; padding: 0.35rem 0; border-bottom: 1px solid var(--line); }
+.price-line dt { font-weight: 400; } .price-line dd { margin: 0; white-space: nowrap; }
+.price-total { display: flex; justify-content: space-between; align-items: baseline; padding-top: 0.75rem; font-size: 1.1rem; }
+.price-total strong { font-size: 1.6rem; font-family: 'Fraunces', Georgia, serif; }
+
+/* Voucher e processamento */
+.processing { padding: 3rem 1.5rem; }
+.voucher { background: #fff; border: 1px solid var(--line); border-radius: 0.9rem; overflow: hidden; box-shadow: 0 10px 28px rgba(11, 58, 68, 0.1); }
+.voucher-head { background: #1f7a54; color: #fff; padding: 1.25rem 1.5rem; display: flex; align-items: center; gap: 1rem; }
+.voucher-check { width: 2.6rem; height: 2.6rem; border-radius: 50%; background: rgba(255, 255, 255, 0.2); display: grid; place-items: center; font-size: 1.4rem; }
+.voucher-body { padding: 1.25rem 1.5rem; border-bottom: 2px dashed var(--line); }
+.voucher-grid { display: grid; grid-template-columns: max-content 1fr; gap: 0.4rem 1.5rem; margin: 0; }
+.voucher-grid dt { font-weight: 400; color: var(--bs-secondary-color); } .voucher-grid dd { margin: 0; }
+.voucher-actions { padding: 1rem 1.5rem; display: flex; flex-wrap: wrap; gap: 0.5rem; }
+.error-mark { width: 3rem; height: 3rem; border-radius: 50%; background: #fbe4e4; color: #b03a3a; display: grid; place-items: center; font-size: 1.6rem; font-weight: 700; margin: 0 auto 1rem; }
+
+/* Minhas reservas */
+.reserva-card { margin-bottom: 0; }
+.reserva-dados { display: grid; grid-template-columns: repeat(2, 1fr); gap: 0.75rem 1rem; margin: 1rem 0; }
+.reserva-dados dt { font-weight: 400; font-size: 0.8rem; color: var(--bs-secondary-color); } .reserva-dados dd { margin: 0; }
+
+/* Admin */
+.admin-nav { display: flex; flex-direction: row; gap: 0.5rem; flex-wrap: wrap; }
+.admin-link { padding: 0.5rem 0.9rem; border-radius: 0.5rem; text-decoration: none; color: var(--ink); background: #fff; border: 1px solid var(--line); }
+.admin-link.active { background: var(--sea); color: #fff; border-color: var(--sea); }
+.admin-stat:hover { border-color: var(--sea); }
+
+/* Skeletons */
+.skeleton { background: linear-gradient(90deg, #e6eced 25%, #f4f7f7 37%, #e6eced 63%); background-size: 400% 100%; animation: shimmer 1.4s ease infinite; border-radius: 0.4rem; }
+@keyframes shimmer { 0% { background-position: 100% 50%; } 100% { background-position: 0 50%; } }
+@media (prefers-reduced-motion: reduce) { .skeleton { animation: none; } }
+
+/* Responsivo (mobile-first: acima usamos o layout de 1 coluna) */
+@media (min-width: 768px) {
+  .reserva-dados { grid-template-columns: repeat(5, 1fr); }
+  .room-item { grid-template-columns: 1fr auto auto; gap: 1.5rem; }
+  .detail-header { grid-template-columns: 260px 1fr; }
+  .detail-cover { height: 100%; min-height: 170px; }
+  .detail-info { padding: 1.25rem 1.25rem 1.25rem 0; }
+}
+@media (min-width: 992px) {
+  .summary { position: sticky; top: 5rem; }
+  .admin-nav { flex-direction: column; }
+}
+
+@media print {
+  .app-navbar, .app-footer, .voucher-actions { display: none !important; }
+  .voucher { box-shadow: none; }
+}
