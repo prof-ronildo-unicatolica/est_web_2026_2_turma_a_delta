@@ -91,14 +91,14 @@ services:
 
   core-service:
     build:
-      context: ./apps/services/core-service
+      context: ./services/core-service
       dockerfile: Dockerfile
 
     container_name: hotel-core-service
     restart: unless-stopped
 
     volumes:
-      - ./apps/services/core-service:/app
+      - ./services/core-service:/app
 
     environment:
       POSTGRES_SERVER: postgres
@@ -140,7 +140,7 @@ services:
 
   audit-worker:
     build:
-      context: ./apps/services/core-service
+      context: ./services/core-service
       dockerfile: Dockerfile
 
     container_name: hotel-audit-worker
@@ -183,7 +183,7 @@ services:
 
   frontend:
     build:
-      context: ./apps/frontend
+      context: ./frontend
       dockerfile: Dockerfile
 
     container_name: hotel-frontend
