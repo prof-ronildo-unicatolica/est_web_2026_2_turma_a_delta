@@ -15,7 +15,8 @@ class Settings(BaseSettings):
     POSTGRES_DB: str = "hotel_db_dev"
     POSTGRES_PORT: str = "5432"
 
-    JWT_SECRET_KEY: str = "chave-dev-trocar-em-producao"
+    
+    JWT_SECRET_KEY: str
     JWT_ALGORITHM: str = "HS256"
     JWT_EXPIRE_MINUTES: int = 60
 
