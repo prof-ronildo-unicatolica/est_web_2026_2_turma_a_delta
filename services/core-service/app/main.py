@@ -10,6 +10,7 @@ from app.api.v1.reservas import router as reservas_router
 
 from app.core.config import settings
 from app.core.database import get_mongo_db
+from app.core.mongo import create_indexes, mongo_client
 from app.core.seed_mongo import seed_mongo_users
 from app.core.seed_catalogo import seed_catalogo
 
@@ -17,9 +18,11 @@ from app.core.seed_catalogo import seed_catalogo
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     mongo_db = get_mongo_db()
+    await create_indexes()
     await seed_mongo_users(mongo_db)
     seed_catalogo()
     yield
+    mongo_client.close()
 
 
 app = FastAPI(
