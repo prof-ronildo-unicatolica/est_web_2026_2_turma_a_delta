@@ -29,12 +29,14 @@ def register(payload: UsuarioCreate, db: Session = Depends(get_db)):
             detail="E-mail já cadastrado",
         )
 
+
     usuario = Usuario(
         nome=payload.nome.strip(),
-        email=email,
+        email=payload.email.strip().lower(),
         senha_hash=hash_password(payload.senha),
-        is_admin=payload.is_admin,
+        is_admin=False,  # nunca aceitar privilégio do cadastro público
     )
+
 
     db.add(usuario)
     try:
