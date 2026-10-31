@@ -10,7 +10,6 @@ from app.core.database import get_db
 from app.models.cidade import Cidade
 from app.models.comodidade import Comodidade
 from app.models.hotel import Hotel
-from app.models.hotel_comodidade import HotelComodidade
 from app.models.quarto import Quarto
 from app.models.usuario import Usuario
 from app.schemas.catalogo import (
@@ -62,7 +61,82 @@ def criar_cidade(
     return cidade
 
 
-@router.get("/comodidades", response_model=list[ComodidadeResponseSchema])
+@router.put(
+    "/admin/cidades/{cidade_id}",
+    response_model=CidadeResponseSchema,
+)
+def atualizar_cidade(
+    cidade_id: UUID,
+    payload: CidadeCreateSchema,
+    db: Session = Depends(get_db),
+    _: Usuario = Depends(get_current_admin),
+):
+    cidade = db.get(Cidade, cidade_id)
+
+    if cidade is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Cidade não encontrada",
+        )
+
+    cidade.nome = payload.nome.strip()
+    cidade.estado = payload.estado.strip().upper()
+    cidade.limite_territorial = payload.limite_territorial
+
+    try:
+        db.commit()
+        db.refresh(cidade)
+    except IntegrityError:
+        db.rollback()
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="Cidade já cadastrada",
+        )
+
+    return cidade
+
+
+@router.delete(
+    "/admin/cidades/{cidade_id}",
+    status_code=status.HTTP_204_NO_CONTENT,
+)
+def remover_cidade(
+    cidade_id: UUID,
+    db: Session = Depends(get_db),
+    _: Usuario = Depends(get_current_admin),
+):
+    cidade = db.scalar(
+        select(Cidade)
+        .where(Cidade.id == cidade_id)
+        .with_for_update()
+    )
+
+    if cidade is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Cidade não encontrada",
+        )
+
+    possui_hoteis = db.scalar(
+        select(Hotel.id)
+        .where(Hotel.cidade_id == cidade_id)
+        .limit(1)
+    )
+
+    if possui_hoteis:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="Não é possível remover uma cidade que possui hotéis.",
+        )
+
+    db.delete(cidade)
+    db.commit()
+
+
+@router.get(
+    "/comodidades",
+    response_model=list[ComodidadeResponseSchema],
+)
 def listar_comodidades(db: Session = Depends(get_db)):
     return db.scalars(select(Comodidade).order_by(Comodidade.nome)).all()
 
@@ -137,6 +211,43 @@ def listar_hoteis(
     ]
 
 
+@router.get(
+    "/hoteis/{hotel_id}",
+    response_model=HotelResponseSchema,
+)
+def obter_hotel(
+    hotel_id: UUID,
+    db: Session = Depends(get_db),
+):
+    hotel = db.scalar(
+        select(Hotel)
+        .options(
+            joinedload(Hotel.cidade),
+            joinedload(Hotel.comodidades),
+        )
+        .where(Hotel.id == hotel_id)
+    )
+
+    if hotel is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Hotel não encontrado",
+        )
+
+    return HotelResponseSchema(
+        id=hotel.id,
+        nome=hotel.nome,
+        cidade_id=hotel.cidade_id,
+        cidade=hotel.cidade.nome,
+        categoria_estrelas=hotel.categoria_estrelas,
+        localizacao=hotel.localizacao,
+        comodidades=[
+            associacao.comodidade_id
+            for associacao in hotel.comodidades
+        ],
+    )
+
+
 @router.post(
     "/admin/hoteis",
     response_model=HotelResponseSchema,
@@ -147,7 +258,9 @@ def criar_hotel(
     db: Session = Depends(get_db),
     _: Usuario = Depends(get_current_admin),
 ):
-    cidade = db.scalar(select(Cidade).where(Cidade.id == payload.cidade_id))
+    cidade = db.scalar(
+        select(Cidade).where(Cidade.id == payload.cidade_id)
+    )
 
     if cidade is None:
         raise HTTPException(
@@ -184,9 +297,106 @@ def criar_hotel(
     )
 
 
-@router.get("/quartos", response_model=list[QuartoResponseSchema])
+@router.put(
+    "/admin/hoteis/{hotel_id}",
+    response_model=HotelResponseSchema,
+)
+def atualizar_hotel(
+    hotel_id: UUID,
+    payload: HotelCreateSchema,
+    db: Session = Depends(get_db),
+    _: Usuario = Depends(get_current_admin),
+):
+    hotel = db.get(Hotel, hotel_id)
+
+    if hotel is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Hotel não encontrado",
+        )
+
+    cidade = db.get(Cidade, payload.cidade_id)
+
+    if cidade is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Cidade não encontrada",
+        )
+
+    hotel.nome = payload.nome.strip()
+    hotel.cidade_id = payload.cidade_id
+    hotel.categoria_estrelas = payload.categoria_estrelas
+    hotel.localizacao = payload.localizacao
+
+    try:
+        db.commit()
+        db.refresh(hotel)
+    except IntegrityError:
+        db.rollback()
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="Não foi possível atualizar o hotel",
+        )
+
+    return HotelResponseSchema(
+        id=hotel.id,
+        nome=hotel.nome,
+        cidade_id=hotel.cidade_id,
+        cidade=cidade.nome,
+        categoria_estrelas=hotel.categoria_estrelas,
+        localizacao=hotel.localizacao,
+        comodidades=[
+            associacao.comodidade_id
+            for associacao in hotel.comodidades
+        ],
+    )
+
+
+@router.delete(
+    "/admin/hoteis/{hotel_id}",
+    status_code=status.HTTP_204_NO_CONTENT,
+)
+def remover_hotel(
+    hotel_id: UUID,
+    db: Session = Depends(get_db),
+    _: Usuario = Depends(get_current_admin),
+):
+    hotel = db.scalar(
+        select(Hotel)
+        .where(Hotel.id == hotel_id)
+        .with_for_update()
+    )
+
+    if hotel is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Hotel não encontrado",
+        )
+
+    possui_quartos = db.scalar(
+        select(Quarto.id)
+        .where(Quarto.hotel_id == hotel_id)
+        .limit(1)
+    )
+
+    if possui_quartos:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="Não é possível remover um hotel que possui quartos cadastrados.",
+        )
+
+    db.delete(hotel)
+    db.commit()
+
+
+@router.get(
+    "/quartos",
+    response_model=list[QuartoResponseSchema],
+)
 def listar_quartos(db: Session = Depends(get_db)):
-    return db.scalars(select(Quarto).order_by(Quarto.hotel_id, Quarto.numero)).all()
+    return db.scalars(
+        select(Quarto).order_by(Quarto.hotel_id, Quarto.numero)
+    ).all()
 
 
 @router.post(
@@ -199,7 +409,9 @@ def criar_quarto(
     db: Session = Depends(get_db),
     _: Usuario = Depends(get_current_admin),
 ):
-    hotel = db.scalar(select(Hotel).where(Hotel.id == payload.hotel_id))
+    hotel = db.scalar(
+        select(Hotel).where(Hotel.id == payload.hotel_id)
+    )
 
     if hotel is None:
         raise HTTPException(
