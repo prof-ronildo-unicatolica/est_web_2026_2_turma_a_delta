@@ -7,6 +7,8 @@ from sqlalchemy.orm import Session
 
 from app.api.deps import get_current_user
 from app.core.database import get_db
+from app.core.rabbitmq import QUEUE_AUDITORIA, QUEUE_SOLICITACOES_RESERVA, publish_event
+from datetime import datetime, timezone
 from app.models.quarto import Quarto
 from app.models.reserva import Reserva
 from app.models.usuario import Usuario
@@ -34,7 +36,7 @@ def _reserva_ou_404(
     response_model=ReservaResponseSchema,
     status_code=status.HTTP_201_CREATED,
 )
-def criar_reserva(
+async def criar_reserva(
     payload: ReservaCreateSchema,
     db: Session = Depends(get_db),
     usuario_atual: Usuario = Depends(get_current_user),
@@ -95,13 +97,23 @@ def criar_reserva(
         data_limite_cancelamento=data_limite_cancelamento,
         valor_multa_cancelamento=0,
         valor_total=valor_total,
-        status="Confirmada",
+        status="Pendente",
     )
 
     db.add(reserva)
     db.commit()
     db.refresh(reserva)
 
+    evento = {
+        "evento": "RESERVA_SOLICITADA",
+        "reserva_id": str(reserva.id),
+        "usuario_id": str(reserva.usuario_id),
+        "timestamp": datetime.now(timezone.utc).isoformat(),
+        "detalhes": {"valor_total": str(reserva.valor_total)},
+    }
+    await publish_event(QUEUE_AUDITORIA, evento)
+    await publish_event(QUEUE_AUDITORIA, {**evento, "evento": "RESERVA_EM_FILA"})
+    await publish_event(QUEUE_SOLICITACOES_RESERVA, {"reserva_id": str(reserva.id)})
     return reserva
 
 
