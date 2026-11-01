@@ -8,7 +8,7 @@ services:
 
     environment:
       POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: postgres
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Defina POSTGRES_PASSWORD no .env}
       POSTGRES_DB: hotel_db_dev
 
     ports:
@@ -34,7 +34,7 @@ services:
 
     environment:
       MONGO_INITDB_ROOT_USERNAME: admin
-      MONGO_INITDB_ROOT_PASSWORD: admin123
+      MONGO_INITDB_ROOT_PASSWORD: ${MONGO_ROOT_PASSWORD:?Defina MONGO_ROOT_PASSWORD no .env}
 
     ports:
       - "27017:27017"
@@ -64,8 +64,8 @@ services:
     restart: unless-stopped
 
     environment:
-      RABBITMQ_DEFAULT_USER: guest
-      RABBITMQ_DEFAULT_PASS: guest
+      RABBITMQ_DEFAULT_USER: ${RABBITMQ_USER:-hotel_app}
+      RABBITMQ_DEFAULT_PASS: ${RABBITMQ_PASSWORD:?Defina RABBITMQ_PASSWORD no .env}
 
     ports:
       - "5672:5672"
@@ -101,16 +101,17 @@ services:
       - ./services/core-service:/app
 
     environment:
+      JWT_SECRET_KEY: ${JWT_SECRET_KEY:?Defina JWT_SECRET_KEY no .env}
       POSTGRES_SERVER: postgres
       POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: postgres
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Defina POSTGRES_PASSWORD no .env}
       POSTGRES_DB: hotel_db_dev
       POSTGRES_PORT: 5432
 
-      MONGODB_URL: mongodb://admin:admin123@mongodb:27017
+      MONGODB_URL: mongodb://admin:${MONGO_ROOT_PASSWORD:?Defina MONGO_ROOT_PASSWORD no .env}@mongodb:27017/?authSource=admin
       MONGODB_DB: hotel_mongo_dev
 
-      RABBITMQ_URL: amqp://guest:guest@rabbitmq:5672/
+      RABBITMQ_URL: amqp://${RABBITMQ_USER:-hotel_app}:${RABBITMQ_PASSWORD:?Defina RABBITMQ_PASSWORD no .env}@rabbitmq:5672/
 
     ports:
       - "8000:8000"
@@ -145,14 +146,15 @@ services:
     container_name: hotel-reservation-worker
     restart: unless-stopped
     environment:
+      JWT_SECRET_KEY: ${JWT_SECRET_KEY:?Defina JWT_SECRET_KEY no .env}
       POSTGRES_SERVER: postgres
       POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: postgres
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Defina POSTGRES_PASSWORD no .env}
       POSTGRES_DB: hotel_db_dev
       POSTGRES_PORT: 5432
-      MONGODB_URL: mongodb://admin:admin123@mongodb:27017
+      MONGODB_URL: mongodb://admin:${MONGO_ROOT_PASSWORD:?Defina MONGO_ROOT_PASSWORD no .env}@mongodb:27017/?authSource=admin
       MONGODB_DB: hotel_mongo_dev
-      RABBITMQ_URL: amqp://guest:guest@rabbitmq:5672/
+      RABBITMQ_URL: amqp://${RABBITMQ_USER:-hotel_app}:${RABBITMQ_PASSWORD:?Defina RABBITMQ_PASSWORD no .env}@rabbitmq:5672/
     depends_on:
       postgres:
         condition: service_healthy
@@ -178,16 +180,17 @@ services:
     restart: unless-stopped
 
     environment:
+      JWT_SECRET_KEY: ${JWT_SECRET_KEY:?Defina JWT_SECRET_KEY no .env}
       POSTGRES_SERVER: postgres
       POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: postgres
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Defina POSTGRES_PASSWORD no .env}
       POSTGRES_DB: hotel_db_dev
       POSTGRES_PORT: 5432
 
-      MONGODB_URL: mongodb://admin:admin123@mongodb:27017
+      MONGODB_URL: mongodb://admin:${MONGO_ROOT_PASSWORD:?Defina MONGO_ROOT_PASSWORD no .env}@mongodb:27017/?authSource=admin
       MONGODB_DB: hotel_mongo_dev
 
-      RABBITMQ_URL: amqp://guest:guest@rabbitmq:5672/
+      RABBITMQ_URL: amqp://${RABBITMQ_USER:-hotel_app}:${RABBITMQ_PASSWORD:?Defina RABBITMQ_PASSWORD no .env}@rabbitmq:5672/
 
     depends_on:
       postgres:
