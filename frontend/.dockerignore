@@ -1,7 +1,20 @@
-node_modules
-dist
+# Segredos
+.env
+.env.*
+!.env.example
+
+# Git
 .git
 .github
+
+# Dependências
+node_modules
+dist
+
+# IDE
 .vscode
 .idea
+
+# Temporários
 *.log
+.DS_Store
