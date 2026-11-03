@@ -1,5 +1,6 @@
+
 services:
-  # ─── Bancos de Dados ────────────────────────────────────────────────────────
+  # ─── Bancos de Dados ─────────────────────────────────────────────
 
   postgres:
     image: postgres:18-alpine
@@ -25,7 +26,6 @@ services:
 
     networks:
       - bigdata
-
 
   mongodb:
     image: mongo:7.0
@@ -57,7 +57,6 @@ services:
     networks:
       - bigdata
 
-
   rabbitmq:
     image: rabbitmq:3-management-alpine
     container_name: hotel-rabbitmq
@@ -72,13 +71,7 @@ services:
       - "15672:15672"
 
     healthcheck:
-      test:
-        [
-          "CMD",
-          "rabbitmq-diagnostics",
-          "-q",
-          "ping"
-        ]
+      test: ["CMD", "rabbitmq-diagnostics", "-q", "ping"]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -86,8 +79,7 @@ services:
     networks:
       - bigdata
 
-
-  # ─── Backend (Core Service) ────────────────────────────────────────────────
+  # ─── Backend ─────────────────────────────────────────────────────
 
   core-service:
     build:
@@ -97,21 +89,19 @@ services:
     container_name: hotel-core-service
     restart: unless-stopped
 
-    volumes:
-      - ./services/core-service:/app
-
     environment:
       JWT_SECRET_KEY: ${JWT_SECRET_KEY:?Defina JWT_SECRET_KEY no .env}
+
       POSTGRES_SERVER: postgres
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Defina POSTGRES_PASSWORD no .env}
       POSTGRES_DB: hotel_db_dev
       POSTGRES_PORT: 5432
 
-      MONGODB_URL: mongodb://admin:${MONGO_ROOT_PASSWORD:?Defina MONGO_ROOT_PASSWORD no .env}@mongodb:27017/?authSource=admin
+      MONGODB_URL: ${MONGODB_URL:?Defina MONGODB_URL no .env}
       MONGODB_DB: hotel_mongo_dev
 
-      RABBITMQ_URL: amqp://${RABBITMQ_USER:-hotel_app}:${RABBITMQ_PASSWORD:?Defina RABBITMQ_PASSWORD no .env}@rabbitmq:5672/
+      RABBITMQ_URL: ${RABBITMQ_URL:?Defina RABBITMQ_URL no .env}
 
     ports:
       - "8000:8000"
@@ -119,10 +109,8 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
-
       mongodb:
         condition: service_healthy
-
       rabbitmq:
         condition: service_healthy
 
@@ -136,25 +124,30 @@ services:
     networks:
       - bigdata
 
-
-  # ─── Worker de Reservas ────────────────────────────────────────────────────
+  # ─── Worker de Reservas ──────────────────────────────────────────
 
   reservation-worker:
     build:
       context: ./services/core-service
       dockerfile: Dockerfile
+
     container_name: hotel-reservation-worker
     restart: unless-stopped
+
     environment:
       JWT_SECRET_KEY: ${JWT_SECRET_KEY:?Defina JWT_SECRET_KEY no .env}
+
       POSTGRES_SERVER: postgres
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Defina POSTGRES_PASSWORD no .env}
       POSTGRES_DB: hotel_db_dev
       POSTGRES_PORT: 5432
-      MONGODB_URL: mongodb://admin:${MONGO_ROOT_PASSWORD:?Defina MONGO_ROOT_PASSWORD no .env}@mongodb:27017/?authSource=admin
+
+      MONGODB_URL: ${MONGODB_URL:?Defina MONGODB_URL no .env}
       MONGODB_DB: hotel_mongo_dev
-      RABBITMQ_URL: amqp://${RABBITMQ_USER:-hotel_app}:${RABBITMQ_PASSWORD:?Defina RABBITMQ_PASSWORD no .env}@rabbitmq:5672/
+
+      RABBITMQ_URL: ${RABBITMQ_URL:?Defina RABBITMQ_URL no .env}
+
     depends_on:
       postgres:
         condition: service_healthy
@@ -164,12 +157,18 @@ services:
         condition: service_healthy
       core-service:
         condition: service_started
-    command: ["poetry", "run", "python", "-m", "app.workers.reservation_worker"]
+
+    command:
+      - poetry
+      - run
+      - python
+      - -m
+      - app.workers.reservation_worker
+
     networks:
       - bigdata
 
-
-  # ─── Worker de Auditoria ───────────────────────────────────────────────────
+  # ─── Worker de Auditoria ─────────────────────────────────────────
 
   audit-worker:
     build:
@@ -181,24 +180,23 @@ services:
 
     environment:
       JWT_SECRET_KEY: ${JWT_SECRET_KEY:?Defina JWT_SECRET_KEY no .env}
+
       POSTGRES_SERVER: postgres
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Defina POSTGRES_PASSWORD no .env}
       POSTGRES_DB: hotel_db_dev
       POSTGRES_PORT: 5432
 
-      MONGODB_URL: mongodb://admin:${MONGO_ROOT_PASSWORD:?Defina MONGO_ROOT_PASSWORD no .env}@mongodb:27017/?authSource=admin
+      MONGODB_URL: ${MONGODB_URL:?Defina MONGODB_URL no .env}
       MONGODB_DB: hotel_mongo_dev
 
-      RABBITMQ_URL: amqp://${RABBITMQ_USER:-hotel_app}:${RABBITMQ_PASSWORD:?Defina RABBITMQ_PASSWORD no .env}@rabbitmq:5672/
+      RABBITMQ_URL: ${RABBITMQ_URL:?Defina RABBITMQ_URL no .env}
 
     depends_on:
       postgres:
         condition: service_healthy
-
       mongodb:
         condition: service_healthy
-
       rabbitmq:
         condition: service_healthy
 
@@ -212,8 +210,7 @@ services:
     networks:
       - bigdata
 
-
-  # ─── Frontend (React + Vite) ────────────────────────────────────────────────
+  # ─── Frontend ─────────────────────────────────────────────────────
 
   frontend:
     build:
@@ -232,16 +229,13 @@ services:
     networks:
       - bigdata
 
-
-# ─── Volumes ─────────────────────────────────────────────────────────────────
-# ─── Volumes ─────────────────────────────────────────────────────────────────
+# ─── Volumes ───────────────────────────────────────────────────────
 
 volumes:
   postgres_data:
   mongo_data:
 
-
-# ─── Rede compartilhada ──────────────────────────────────────────────────────
+# ─── Rede ──────────────────────────────────────────────────────────
 
 networks:
   bigdata:
