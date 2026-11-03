@@ -1,0 +1,36 @@
+# Segredos
+.env
+.env.*
+!.env.example
+!.env.*.example
+
+# Git
+.git
+.gitignore
+
+# Python
+__pycache__
+*.py[cod]
+*.pyo
+.pytest_cache
+.mypy_cache
+.ruff_cache
+.coverage
+htmlcov
+
+# Ambientes virtuais
+.venv
+venv
+ENV
+
+# Dependências locais
+node_modules
+
+# IDE
+.vscode
+.idea
+
+# Arquivos temporários
+*.log
+.DS_Store
+Thumbs.db

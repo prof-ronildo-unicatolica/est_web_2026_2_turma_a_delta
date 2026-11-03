@@ -1,3 +1,4 @@
+
 FROM python:3.11-slim
 
 WORKDIR /app
@@ -14,17 +15,19 @@ RUN apt-get update \
 # Instala o Poetry
 RUN pip install --no-cache-dir poetry
 
-# Não cria .venv dentro do container
+# Não cria ambiente virtual dentro do container
 RUN poetry config virtualenvs.create false
 
-# Copia os arquivos do Poetry
+# Copia somente os arquivos de dependências
 COPY pyproject.toml poetry.lock ./
 
-# Instala exatamente as dependências do lock
+# Instala as dependências travadas no poetry.lock
 RUN poetry install --no-interaction --no-ansi --no-root
 
-# Copia o projeto
-COPY . .
+# Copia somente os arquivos necessários da aplicação
+COPY app/ ./app/
+COPY alembic/ ./alembic/
+COPY alembic.ini ./
 
 EXPOSE 8000
 
