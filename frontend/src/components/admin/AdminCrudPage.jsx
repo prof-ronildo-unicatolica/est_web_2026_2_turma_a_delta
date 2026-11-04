@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 
 /**
  * Página de CRUD administrativo genérica, guiada por uma descrição de
@@ -18,18 +18,18 @@ export default function AdminCrudPage({ title, description, fields, listFn, crea
   const [form, setForm] = useState({})
   const [salvando, setSalvando] = useState(false)
 
-  function carregar() {
-    setCarregando(true)
-    listFn().then((dados) => {
-      setItens(dados)
-      setCarregando(false)
-    })
-  }
+  const carregar = useCallback(async () => {
+      try {
+        const dados = await listFn()
+        setItens(dados)
+      } finally {
+        setCarregando(false)
+      }
+    }, [listFn])
 
-  useEffect(() => {
-    carregar()
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [])
+    useEffect(() => {
+      carregar()
+     }, [carregar])
 
   function abrirFormulario() {
     const inicial = {}

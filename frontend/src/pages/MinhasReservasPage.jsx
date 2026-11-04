@@ -69,13 +69,15 @@ export default function MinhasReservasPage() {
   const visiveis = filtro === 'Todas' ? reservas : reservas.filter((r) => r.status === filtro)
   const temPendente = reservas.some((r) => r.status === STATUS.PENDENTE)
 
-  // Reservas ainda na fila: atualiza sozinho a cada 3s até saírem de "Pendente"
   useEffect(() => {
-    if (!temPendente) return undefined
-    const t = setInterval(reload, 3000)
-    return () => clearInterval(t)
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [temPendente])
+  if (!temPendente) return undefined
+
+  const intervalo = setInterval(() => {
+    reload()
+  }, 3000)
+
+  return () => clearInterval(intervalo)
+  }, [temPendente, reload])
 
   async function confirmarCancelamento() {
     setCancelando(true)
