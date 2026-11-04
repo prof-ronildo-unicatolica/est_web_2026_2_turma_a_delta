@@ -1,3 +1,4 @@
+
 const BASE_URL = (import.meta.env.VITE_API_URL || '/api/v1').replace(/\/+$/, '')
 const TOKEN_KEY = 'hotel.token'
 
@@ -6,19 +7,26 @@ export const tokenStore = {
     try {
       return localStorage.getItem(TOKEN_KEY)
     } catch {
+      // O navegador pode bloquear o acesso ao localStorage.
       return null
     }
   },
+
   set(token) {
     try {
       localStorage.setItem(TOKEN_KEY, token)
     } catch {
+      // Não interrompe a aplicação se o armazenamento estiver indisponível.
+      return
     }
   },
+
   clear() {
     try {
       localStorage.removeItem(TOKEN_KEY)
     } catch {
+      // Não interrompe a aplicação se o armazenamento estiver indisponível.
+      return
     }
   },
 }

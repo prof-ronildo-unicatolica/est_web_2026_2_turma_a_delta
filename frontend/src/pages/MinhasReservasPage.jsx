@@ -4,7 +4,7 @@ import useFetch from '../hooks/useFetch'
 import { Link } from '../router/Router'
 import { asList, loadReservaSnapshot, normalizeReserva, STATUS } from '../utils/catalog'
 import { brl, formatDate, guestsSummary, todayISO } from '../utils/format'
-import { TARIFA, simularCancelamento } from '../utils/pricing'
+import { TARIFA } from '../utils/pricing'
 import ErrorAlert from '../components/ErrorAlert'
 import Modal from '../components/Modal'
 import StatusBadge from '../components/StatusBadge'
@@ -29,48 +29,26 @@ function enriquecer(r) {
     : n
 }
 
-function InfoCancelamento({ reserva, hoje }) {
+function InfoCancelamento({ reserva }) {
   if (reserva.status === STATUS.CANCELADA) {
     return reserva.valor_multa_cancelamento > 0 ? (
-      <p className="small text-danger mb-0">Multa aplicada no cancelamento: {brl(reserva.valor_multa_cancelamento)}</p>
+      <p className="small text-danger mb-0">Multa informada pela API: {brl(reserva.valor_multa_cancelamento)}</p>
     ) : (
-      <p className="small text-secondary mb-0">Cancelada sem multa.</p>
+      <p className="small text-secondary mb-0">Reserva cancelada. A API não informou multa.</p>
     )
   }
-  if (reserva.tarifa_tipo === TARIFA.NAO_REEMBOLSAVEL) {
-    return <p className="small text-secondary mb-0">Tarifa não reembolsável: cancelar retém 100% do valor.</p>
-  }
-  const sim = simularCancelamento(reserva, hoje)
-  if (sim.cenario === 'gratuito') {
-    return <p className="small text-success mb-0">Cancelamento grátis até {formatDate(sim.limite)}.</p>
-  }
+
   return (
-    <p className="small text-warning-emphasis mb-0">
-      Prazo de cancelamento grátis encerrado em {formatDate(sim.limite)}. Cancelar agora cobra multa de 1 diária.
+    <p className="small text-secondary mb-0">
+      A API atual permite cancelar a reserva, mas ainda não calcula multas ou retenções.
     </p>
   )
 }
 
-function AvisoMulta({ reserva, hoje }) {
-  const sim = simularCancelamento(reserva, hoje)
-  if (sim.cenario === 'gratuito') {
-    return (
-      <div className="alert alert-success mb-0">
-        Cancelamento <strong>sem multa</strong>: você está dentro do prazo (até {formatDate(sim.limite)}).
-      </div>
-    )
-  }
-  if (sim.cenario === 'nao_reembolsavel') {
-    return (
-      <div className="alert alert-danger mb-0">
-        Tarifa <strong>não reembolsável</strong>: será retido 100% do valor, <strong>{brl(sim.multa)}</strong>.
-      </div>
-    )
-  }
+function AvisoMulta() {
   return (
-    <div className="alert alert-warning mb-0">
-      O prazo de cancelamento grátis terminou em {formatDate(sim.limite)}. Será cobrada <strong>multa de 1 diária</strong>
-      {sim.multa != null ? `: ${brl(sim.multa)}` : ' do quarto'}.
+    <div className="alert alert-info mb-0">
+      O backend atual altera o status da reserva para “Cancelada”, mas ainda não implementa o cálculo de multa ou retenção.
     </div>
   )
 }
@@ -202,7 +180,7 @@ export default function MinhasReservasPage() {
               {r.status === STATUS.PENDENTE ? (
                 <p className="small text-secondary mb-0">Aguardando confirmação do pagamento...</p>
               ) : (
-                <InfoCancelamento reserva={r} hoje={hoje} />
+                <InfoCancelamento reserva={r} />
               )}
               <div className="d-flex gap-2">
                 {r.status !== STATUS.CANCELADA && (
@@ -248,8 +226,8 @@ export default function MinhasReservasPage() {
             {alvo.hotel_nome ? `${alvo.hotel_nome}, ` : ''}
             {formatDate(alvo.data_checkin)} a {formatDate(alvo.data_checkout)} ({brl(alvo.valor_total)})
           </p>
-          <AvisoMulta reserva={alvo} hoje={hoje} />
-          <p className="small text-secondary mt-3 mb-0">O valor definitivo da multa é calculado pelo sistema no momento do cancelamento.</p>
+          <AvisoMulta />
+          <p className="small text-secondary mt-3 mb-0">O cancelamento será processado pela API e o status atualizado.</p>
           <ErrorAlert error={erroCancel} className="mt-3 mb-0" />
         </Modal>
       )}

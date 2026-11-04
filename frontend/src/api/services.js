@@ -29,11 +29,21 @@ export const authApi = {
 export const catalogoApi = {
   cidades: () => api.get('/cidades', { auth: false }),
 
-  hoteis: () => api.get('/hoteis', { auth: false }),
+  hoteis: (params) => api.get('/hoteis', { params, auth: false }),
+
+  quartos: () => api.get('/quartos', { auth: false }),
 
   hotel: (id) => api.get(`/hoteis/${id}`, { auth: false }),
 
-  buscar: (params) => api.get('/busca', { params, auth: false }),
+  // O backend implementa filtros por cidade_id, estrelas_min e busca em GET /hoteis.
+  buscar: (params = {}) => api.get('/hoteis', {
+    params: {
+      cidade_id: params.cidade_id,
+      estrelas_min: params.estrelas ?? params.estrelas_min,
+      busca: params.busca,
+    },
+    auth: false,
+  }),
 
   tarifas: (hotelId) =>
     opcional(

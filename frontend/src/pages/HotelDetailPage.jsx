@@ -3,7 +3,7 @@ import { catalogoApi } from '../api/services'
 import useFetch from '../hooks/useFetch'
 import { Link } from '../router/Router'
 import { useParams, useSearchParams } from '../router/hooks'
-import { normalizeHotel } from '../utils/catalog'
+import { asList, normalizeHotel, normalizeQuarto } from '../utils/catalog'
 import { brl, formatDate, guestsSummary } from '../utils/format'
 import ErrorAlert from '../components/ErrorAlert'
 import HotelCover from '../components/HotelCover'
@@ -15,7 +15,14 @@ const int = (v, d) => (v === null || Number.isNaN(Number(v)) ? d : Number(v))
 export default function HotelDetailPage() {
   const { id } = useParams()
   const [params] = useSearchParams()
-  const { data: hotel, loading, error, reload } = useFetch(() => catalogoApi.hotel(id).then(normalizeHotel), [id])
+  const carregarHotel = () => Promise.all([catalogoApi.hotel(id), catalogoApi.quartos()])
+    .then(([hotelData, quartosData]) => normalizeHotel({
+      ...hotelData,
+      quartos: asList(quartosData)
+        .filter((quarto) => String(quarto.hotel_id) === String(hotelData.id))
+        .map(normalizeQuarto),
+    }))
+  const { data: hotel, loading, error, reload } = useFetch(carregarHotel, [id])
 
   const hospedes = {
     adultos: int(params.get('adultos'), null),

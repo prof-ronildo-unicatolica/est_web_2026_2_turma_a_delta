@@ -92,16 +92,29 @@ export default function HomePage() {
   const cidades = useFetch(() => catalogoApi.cidades().then((d) => asList(d)), [])
   const resultado = useFetch(
     () =>
-      catalogoApi
-        .buscar({
+      Promise.all([catalogoApi.buscar({
           cidade_id: filtros.cidade,
           checkin: filtros.checkin,
           checkout: filtros.checkout,
           adultos: filtros.buscou ? filtros.adultos : '',
           criancas: filtros.buscou ? filtros.criancas : '',
           estrelas: filtros.estrelas,
-        })
-        .then((d) => asList(d).map(normalizeHotel)),
+        }), catalogoApi.quartos()])
+        .then(([hoteisData, quartosData]) => {
+          const quartos = asList(quartosData)
+          return asList(hoteisData).map((hotelData) => {
+            const hotel = normalizeHotel({
+              ...hotelData,
+              quartos: quartos.filter((quarto) => String(quarto.hotel_id) === String(hotelData.id)),
+            })
+            if (!filtros.buscou) return hotel
+            return {
+              ...hotel,
+              quartos: hotel.quartos.filter((quarto) =>
+                quarto.max_adultos >= filtros.adultos && quarto.max_criancas >= filtros.criancas),
+            }
+          })
+        }),
     [params.toString()],
   )
 
@@ -162,7 +175,7 @@ export default function HomePage() {
       <section className="hero">
         <div className="container">
           <h1 className="hero-title">Escolha a cidade, as datas e quem vai com você.</h1>
-          <p className="hero-sub">Mostramos só os quartos livres no período e que comportam o seu grupo.</p>
+          <p className="hero-sub">Consulte os hotéis, confira a capacidade dos quartos e escolha suas datas.</p>
         </div>
       </section>
 
