@@ -1,6 +1,6 @@
 from uuid import UUID
 
-from pydantic import BaseModel, ConfigDict, Field, EmailStr
+from pydantic import BaseModel, ConfigDict, Field, EmailStr, field_validator
 
 
 class UsuarioCreate(BaseModel):
@@ -9,6 +9,13 @@ class UsuarioCreate(BaseModel):
     nome: str = Field(min_length=2, max_length=100)
     email: EmailStr
     senha: str = Field(min_length=8, max_length=128)
+
+    @field_validator("senha")
+    @classmethod
+    def validar_tamanho_bcrypt(cls, value: str) -> str:
+        if len(value.encode("utf-8")) > 72:
+            raise ValueError("A senha é muito longa.")
+        return value
 
 
 class LoginRequest(BaseModel):

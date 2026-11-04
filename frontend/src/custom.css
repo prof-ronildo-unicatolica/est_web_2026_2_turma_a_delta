@@ -140,3 +140,73 @@ h5, h6, .h5, .h6 { font-family: var(--bs-body-font-family); font-weight: 600; le
   .app-navbar, .app-footer, .voucher-actions { display: none !important; }
   .voucher { box-shadow: none; }
 }
+
+
+/* Autenticação: layout fluido e controles acessíveis em telas pequenas */
+.auth-container {
+  width: min(100% - 1.5rem, 25rem);
+  margin: 0 auto;
+  padding: clamp(1.5rem, 5vh, 3rem) 0;
+}
+.auth-card { width: 100%; border: 1px solid var(--line); border-radius: 0.75rem; }
+.auth-card-body { padding: clamp(1rem, 4vw, 1.5rem); }
+.password-field { position: relative; }
+.password-field .password-input { padding-right: 5.25rem; }
+.password-toggle {
+  position: absolute;
+  top: 50%;
+  right: 0.35rem;
+  transform: translateY(-50%);
+  border: 0;
+  border-radius: 0.375rem;
+  background: transparent;
+  color: var(--sea);
+  font-size: 0.875rem;
+  font-weight: 600;
+  min-width: 4.25rem;
+  min-height: 2.5rem;
+  padding: 0.35rem 0.5rem;
+}
+.password-toggle:hover { background: rgba(11, 100, 119, 0.08); }
+.password-toggle:focus-visible { outline-offset: -2px; }
+.password-rules { line-height: 1.55; }
+.auth-submit { min-height: 2.75rem; }
+
+/* Ajustes gerais para celulares e tablets */
+html, body, #root { min-height: 100%; }
+body { overflow-x: hidden; }
+img, video, iframe { max-width: 100%; }
+button, .btn, .form-control, .form-select { touch-action: manipulation; }
+.form-control, .form-select { min-height: 2.75rem; }
+.table-responsive { -webkit-overflow-scrolling: touch; }
+.admin-nav { min-width: 0; }
+.admin-link { min-height: 2.75rem; display: inline-flex; align-items: center; }
+.room-action .btn { min-width: 7rem; }
+@media (max-width: 575.98px) {
+  .container { --bs-gutter-x: 1.25rem; }
+  .hero { padding: 2rem 0 5.5rem; }
+  .search-wrap { margin-top: -3.75rem; }
+  .search-panel { padding: 1rem; }
+  .panel { padding: 1rem; }
+  .processing { padding: 2rem 0.75rem; }
+  .voucher-head, .voucher-body { padding: 1rem; }
+  .voucher-grid { grid-template-columns: 1fr; gap: 0.15rem; }
+  .voucher-grid dd { margin-bottom: 0.45rem; overflow-wrap: anywhere; }
+  .voucher-actions { padding: 0.75rem 1rem; }
+  .voucher-actions .btn { flex: 1 1 100%; }
+  .reserva-dados { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .admin-nav { overflow-x: auto; flex-wrap: nowrap; padding-bottom: 0.35rem; }
+  .admin-link { flex: 0 0 auto; white-space: nowrap; }
+  .room-item { padding: 1rem; }
+  .room-action .btn { width: 100%; }
+  .btn-group { display: flex; width: 100%; }
+  .btn-group > .btn { flex: 1 1 auto; white-space: normal; }
+  .auth-container { width: min(100% - 1rem, 25rem); padding: 1.25rem 0; }
+  .auth-card-body { padding: 1rem; }
+  .nav-tabs .nav-link { padding: 0.65rem 0.85rem; }
+}
+@media (max-width: 360px) {
+  .reserva-dados { grid-template-columns: 1fr; }
+  .brand { font-size: 1.15rem; }
+  .counter .form-control { max-width: 2.6rem; }
+}

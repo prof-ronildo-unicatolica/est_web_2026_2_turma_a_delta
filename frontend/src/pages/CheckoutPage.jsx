@@ -3,7 +3,7 @@ import { catalogoApi, reservasApi } from '../api/services'
 import useFetch from '../hooks/useFetch'
 import { Link } from '../router/Router'
 import { useNavigate, useSearchParams } from '../router/hooks'
-import { asList, normalizeHotel, normalizeServico, normalizeTarifa, saveReservaSnapshot } from '../utils/catalog'
+import { asList, normalizeHotel, normalizeQuarto, normalizeServico, normalizeTarifa, saveReservaSnapshot } from '../utils/catalog'
 import { brl, formatDate, todayISO } from '../utils/format'
 import { TARIFA, addDays, calcularOrcamento } from '../utils/pricing'
 import Counter from '../components/Counter'
@@ -20,13 +20,19 @@ export default function CheckoutPage() {
   const quartoId = params.get('quarto')
 
   const catalogo = useFetch(async () => {
-    const [hotel, tarifas, servicos] = await Promise.all([
+    const [hotel, quartos, tarifas, servicos] = await Promise.all([
       catalogoApi.hotel(hotelId),
+      catalogoApi.quartos(),
       catalogoApi.tarifas(hotelId),
       catalogoApi.servicos(),
     ])
     return {
-      hotel: normalizeHotel(hotel),
+      hotel: normalizeHotel({
+        ...hotel,
+        quartos: asList(quartos)
+          .filter((quarto) => String(quarto.hotel_id) === String(hotel.id))
+          .map(normalizeQuarto),
+      }),
       tarifas: asList(tarifas).map(normalizeTarifa),
       servicos: asList(servicos).map(normalizeServico),
     }
@@ -124,9 +130,6 @@ export default function CheckoutPage() {
         late_checkout: late,
         necessita_berco: bercoEfetivo,
         tarifa_tipo: tarifaTipo,
-        servicos: servicosCatalogo
-          .filter((s) => (qtdServicos[s.id] || 0) > 0)
-          .map((s) => ({ servico_id: s.id, quantidade: qtdServicos[s.id] })),
       })
       saveReservaSnapshot(reserva.id, {
         hotel_id: hotel.id,
@@ -216,16 +219,16 @@ export default function CheckoutPage() {
               <label className="form-check-label" htmlFor="t-reemb">
                 <strong>Reembolsável</strong>
                 <span className="d-block text-secondary small">
-                  Cancelamento grátis até 48h antes do check-in
-                  {form.checkin ? ` (até ${formatDate(addDays(form.checkin, -2))})` : ''}. Depois disso, multa de 1 diária.
+                  O prazo de referência para cancelamento é de 48h antes do check-in
+                  {form.checkin ? ` (até ${formatDate(addDays(form.checkin, -2))})` : ''}. O backend atual ainda não calcula multas.
                 </span>
               </label>
             </div>
             <div className="form-check option-check">
               <input className="form-check-input" type="radio" name="tarifa" id="t-nao" checked={tarifaTipo === TARIFA.NAO_REEMBOLSAVEL} onChange={() => setTarifaTipo(TARIFA.NAO_REEMBOLSAVEL)} />
               <label className="form-check-label" htmlFor="t-nao">
-                <strong>Não reembolsável</strong> <span className="badge text-bg-success">10% de desconto</span>
-                <span className="d-block text-secondary small">Em caso de cancelamento, 100% do valor é retido.</span>
+                <strong>Não reembolsável</strong>
+                <span className="d-block text-secondary small">A condição será registrada na reserva; o backend atual não calcula retenção ou multa.</span>
               </label>
             </div>
           </section>
@@ -238,14 +241,14 @@ export default function CheckoutPage() {
               <input className="form-check-input" type="checkbox" id="o-early" checked={early} onChange={(e) => setEarly(e.target.checked)} />
               <label className="form-check-label" htmlFor="o-early">
                 <strong>Early check-in</strong> (entrada a partir das 08h)
-                <span className="d-block text-secondary small">+30% de uma diária ({brl(quarto.preco_diaria * 0.3)})</span>
+                <span className="d-block text-secondary small">Solicitação registrada; sem cobrança adicional calculada pelo backend.</span>
               </label>
             </div>
             <div className="form-check option-check">
               <input className="form-check-input" type="checkbox" id="o-late" checked={late} onChange={(e) => setLate(e.target.checked)} />
               <label className="form-check-label" htmlFor="o-late">
                 <strong>Late checkout</strong> (saída até as 18h)
-                <span className="d-block text-secondary small">+30% de uma diária ({brl(quarto.preco_diaria * 0.3)})</span>
+                <span className="d-block text-secondary small">Solicitação registrada; sem cobrança adicional calculada pelo backend.</span>
               </label>
             </div>
             <div className="form-check option-check">
@@ -253,7 +256,7 @@ export default function CheckoutPage() {
               <label className="form-check-label" htmlFor="o-berco">
                 <strong>Berço no quarto</strong>
                 <span className="d-block text-secondary small">
-                  {form.bebes < 1 ? 'Disponível quando houver bebê (0 a 5 anos) na reserva.' : 'Sem custo adicional.'}
+                  {form.bebes < 1 ? 'Disponível quando houver bebê (0 a 5 anos) na reserva.' : 'Solicitação registrada na reserva.'}
                 </span>
               </label>
             </div>
@@ -370,12 +373,12 @@ export default function CheckoutPage() {
                   )}
                 </dl>
                 <div className="price-total">
-                  <span>Total estimado</span>
+                  <span>Total calculado pelo backend</span>
                   <strong>{brl(orcamento.total)}</strong>
                 </div>
                 {orcamento.dataLimiteCancelamento && (
                   <p className="small text-secondary mt-2 mb-0">
-                    Cancelamento sem multa até {formatDate(orcamento.dataLimiteCancelamento)}.
+                    Data de referência para cancelamento: {formatDate(orcamento.dataLimiteCancelamento)}. A API atual não calcula multa.
                   </p>
                 )}
               </>
