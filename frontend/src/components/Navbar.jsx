@@ -1,21 +1,23 @@
-import { useEffect, useState } from 'react'
+
+import { useState } from 'react'
 import { Link, NavLink } from '../router/Router'
-import { useLocation } from '../router/hooks'
 import { useAuth } from '../auth/authContext'
 
 export default function Navbar() {
   const { user, logout } = useAuth()
-  const { pathname } = useLocation()
   const [aberto, setAberto] = useState(false)
-
-  useEffect(() => setAberto(false), [pathname])
 
   return (
     <nav className="navbar navbar-expand-lg navbar-dark app-navbar sticky-top">
       <div className="container">
-        <Link className="navbar-brand brand" to="/">
+        <Link
+          className="navbar-brand brand"
+          to="/"
+          onClick={() => setAberto(false)}
+        >
           Rede Hoteleira
         </Link>
+
         <button
           className="navbar-toggler"
           type="button"
@@ -24,15 +26,21 @@ export default function Navbar() {
           aria-label="Alternar menu"
           onClick={() => setAberto((v) => !v)}
         >
-          <span className="navbar-toggler-icon"></span>
+          <span className="navbar-toggler-icon" />
         </button>
-        <div className={`collapse navbar-collapse ${aberto ? 'show' : ''}`} id="menu-principal">
+
+        <div
+          className={`collapse navbar-collapse ${aberto ? 'show' : ''}`}
+          id="menu-principal"
+          onClick={() => setAberto(false)}
+        >
           <ul className="navbar-nav me-auto">
             <li className="nav-item">
               <NavLink className="nav-link" to="/" end>
                 Buscar hotéis
               </NavLink>
             </li>
+
             {user && !user.is_admin && (
               <li className="nav-item">
                 <NavLink className="nav-link" to="/minhas-reservas">
@@ -40,6 +48,7 @@ export default function Navbar() {
                 </NavLink>
               </li>
             )}
+
             {user?.is_admin && (
               <li className="nav-item">
                 <NavLink className="nav-link" to="/admin">
@@ -48,14 +57,22 @@ export default function Navbar() {
               </li>
             )}
           </ul>
+
           <div className="d-flex align-items-center gap-2 pt-2 pt-lg-0">
             {user ? (
               <>
                 <span className="text-white-50 small me-1">
                   {user.nome}
-                  {user.is_admin && <span className="badge text-bg-light ms-2">admin</span>}
+                  {user.is_admin && (
+                    <span className="badge text-bg-light ms-2">admin</span>
+                  )}
                 </span>
-                <button type="button" className="btn btn-outline-light btn-sm" onClick={logout}>
+
+                <button
+                  type="button"
+                  className="btn btn-outline-light btn-sm"
+                  onClick={logout}
+                >
                   Sair
                 </button>
               </>
@@ -64,7 +81,11 @@ export default function Navbar() {
                 <Link className="btn btn-outline-light btn-sm" to="/login">
                   Entrar
                 </Link>
-                <Link className="btn btn-light btn-sm" to="/login?modo=cadastro">
+
+                <Link
+                  className="btn btn-light btn-sm"
+                  to="/login?modo=cadastro"
+                >
                   Cadastrar-se
                 </Link>
               </>

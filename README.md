@@ -54,7 +54,7 @@ acontece. A `main` é reservada para versões estáveis e **não** recebe commit
 3. Abra o **Pull Request sempre com destino à `develop`** — nunca para a `main`.
 4. O PR precisa da revisão de pelo menos um colega antes do merge.
 
-Revisar os Pull Requests dos colegas também conta como contribuição avaliada.
+
 
 ```bash
 # 1. Garanta que sua develop local está atualizada
@@ -64,13 +64,12 @@ git pull origin develop
 # 2. Crie sua branch a partir da develop
 git checkout -b feature/minha-tarefa
 
-# 3. Trabalhe, comite e envie
+
 git add .
 git commit -m "feat: descreve o que foi feito"
 git push -u origin feature/minha-tarefa
 
-# 4. Abra o Pull Request no GitHub com destino à branch develop
-```
+
 
 ## Documentação da disciplina
 
