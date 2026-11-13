@@ -1,3 +1,4 @@
+from __future__ import annotations
 
 from uuid import UUID
 
@@ -8,8 +9,6 @@ from app.models.hotel import Hotel
 
 
 class HotelRepository:
-    """Centraliza consultas SQL de hotéis e carrega relações em lote."""
-
     def __init__(self, db: Session):
         self.db = db
 
@@ -26,9 +25,11 @@ class HotelRepository:
             categoria_estrelas=categoria_estrelas,
             localizacao=localizacao,
         )
+
         self.db.add(hotel)
         self.db.commit()
         self.db.refresh(hotel)
+
         return hotel
 
     def list(self) -> list[Hotel]:
@@ -40,6 +41,7 @@ class HotelRepository:
             )
             .order_by(Hotel.nome)
         )
+
         return list(self.db.scalars(stmt).unique().all())
 
     def list_by_cidade(self, cidade_id: UUID) -> list[Hotel]:
@@ -52,6 +54,7 @@ class HotelRepository:
             .where(Hotel.cidade_id == cidade_id)
             .order_by(Hotel.nome)
         )
+
         return list(self.db.scalars(stmt).unique().all())
 
     def get_by_id(self, hotel_id: UUID) -> Hotel | None:
@@ -63,6 +66,7 @@ class HotelRepository:
             )
             .where(Hotel.id == hotel_id)
         )
+
         return self.db.scalars(stmt).unique().one_or_none()
 
     def listar(
@@ -85,7 +89,9 @@ class HotelRepository:
             stmt = stmt.where(Hotel.cidade_id == cidade_id)
 
         if estrelas_min is not None:
-            stmt = stmt.where(Hotel.categoria_estrelas >= estrelas_min)
+            stmt = stmt.where(
+                Hotel.categoria_estrelas >= estrelas_min
+            )
 
         if busca and busca.strip():
             stmt = stmt.where(
