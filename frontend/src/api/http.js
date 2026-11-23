@@ -1,91 +1,75 @@
+import { tokenStore } from './tokenStore'
+import {
+  ApiError,
+  mensagemDeErro,
+  mensagemDeFalhaDeConexao,
+} from './errorHandler'
 
 const BASE_URL = (import.meta.env.VITE_API_URL || '/api/v1').replace(/\/+$/, '')
-const TOKEN_KEY = 'hotel.token'
 
-export const tokenStore = {
-  get() {
-    try {
-      return localStorage.getItem(TOKEN_KEY)
-    } catch {
-      // O navegador pode bloquear o acesso ao localStorage.
-      return null
-    }
-  },
-
-  set(token) {
-    try {
-      localStorage.setItem(TOKEN_KEY, token)
-    } catch {
-      // Não interrompe a aplicação se o armazenamento estiver indisponível.
-      return
-    }
-  },
-
-  clear() {
-    try {
-      localStorage.removeItem(TOKEN_KEY)
-    } catch {
-      // Não interrompe a aplicação se o armazenamento estiver indisponível.
-      return
-    }
-  },
-}
+// Mantém os exports históricos para não quebrar os imports existentes.
+export { tokenStore, ApiError, mensagemDeErro }
 
 let onUnauthorized = null
 
-export function setUnauthorizedHandler(fn) {
-  onUnauthorized = fn
+export function setUnauthorizedHandler(handler) {
+  onUnauthorized = handler
 }
 
-export class ApiError extends Error {
-  constructor(message, status, data) {
-    super(message)
-    this.name = 'ApiError'
-    this.status = status
-    this.data = data
+function criarUrl(path, params) {
+  const url = new URL(`${BASE_URL}${path}`, window.location.origin)
+  if (!params) return url
+
+  Object.entries(params).forEach(([key, value]) => {
+    if (value === undefined || value === null || value === '') return
+    url.searchParams.set(key, value)
+  })
+
+  return url
+}
+
+function criarCabecalhos({ auth, body }) {
+  const headers = { Accept: 'application/json' }
+  const token = auth ? tokenStore.get() : null
+
+  if (token) headers.Authorization = `Bearer ${token}`
+  if (body !== undefined) headers['Content-Type'] = 'application/json'
+
+  return { headers, token }
+}
+
+async function executarFetch(url, method, headers, body, signal) {
+  try {
+    return await fetch(url, {
+      method,
+      headers,
+      body: body !== undefined ? JSON.stringify(body) : undefined,
+      signal,
+    })
+  } catch (error) {
+    if (error?.name === 'AbortError') throw error
+    throw new ApiError(mensagemDeFalhaDeConexao(), 0)
   }
 }
 
-function mensagemDeErro(status, data) {
-  const detail = data?.detail
+async function lerResposta(response) {
+  if (response.status === 204) return null
 
-  if (typeof detail === 'string') {
-    return detail
+  const text = await response.text()
+  if (!text) return null
+
+  try {
+    return JSON.parse(text)
+  } catch {
+    return null
   }
+}
 
-  if (Array.isArray(detail) && detail.length) {
-    return detail
-      .map((d) => {
-        const campo = Array.isArray(d.loc)
-          ? d.loc.filter((p) => p !== 'body').join('.')
-          : ''
+function tratarNaoAutorizado(status, token) {
+  if (status !== 401 || !token) return
 
-        return campo ? `${campo}: ${d.msg}` : d.msg
-      })
-      .join(' | ')
-  }
-
-  if (status === 401) {
-    return 'Sessão inválida ou expirada. Entre novamente.'
-  }
-
-  if (status === 403) {
-    return 'Você não tem permissão para esta ação.'
-  }
-
-  if (status === 404) {
-    return 'Recurso não encontrado.'
-  }
-
-  if (status === 503) {
-    return 'Serviço temporariamente indisponível. Tente novamente em instantes.'
-  }
-
-  if (status >= 500) {
-    return 'Erro no servidor. Tente novamente em instantes.'
-  }
-
-  return `Falha na requisição (${status}).`
+  tokenStore.clear()
+  onUnauthorized?.()
 }
 
 export async function request(
@@ -93,74 +77,16 @@ export async function request(
   path,
   { body, params, auth = true, signal } = {},
 ) {
-  const url = new URL(`${BASE_URL}${path}`, window.location.origin)
+  const url = criarUrl(path, params)
+  const { headers, token } = criarCabecalhos({ auth, body })
+  const response = await executarFetch(url, method, headers, body, signal)
+  const data = await lerResposta(response)
 
-  if (params) {
-    Object.entries(params).forEach(([k, v]) => {
-      if (v !== undefined && v !== null && v !== '') {
-        url.searchParams.set(k, v)
-      }
-    })
-  }
-
-  const headers = {
-    Accept: 'application/json',
-  }
-
-  const token = auth ? tokenStore.get() : null
-
-  if (token) {
-    headers.Authorization = `Bearer ${token}`
-  }
-
-  if (body !== undefined) {
-    headers['Content-Type'] = 'application/json'
-  }
-
-  let res
-
-  try {
-    res = await fetch(url, {
-      method,
-      headers,
-      body: body !== undefined ? JSON.stringify(body) : undefined,
-      signal,
-    })
-  } catch (err) {
-    if (err?.name === 'AbortError') {
-      throw err
-    }
-
+  if (!response.ok) {
+    tratarNaoAutorizado(response.status, token)
     throw new ApiError(
-      'Não foi possível conectar à API. Verifique se o backend está no ar.',
-      0,
-    )
-  }
-
-  let data = null
-
-  if (res.status !== 204) {
-    const text = await res.text()
-
-    try {
-      data = text ? JSON.parse(text) : null
-    } catch {
-      data = null
-    }
-  }
-
-  if (!res.ok) {
-    if (res.status === 401 && token) {
-      tokenStore.clear()
-
-      if (onUnauthorized) {
-        onUnauthorized()
-      }
-    }
-
-    throw new ApiError(
-      mensagemDeErro(res.status, data),
-      res.status,
+      mensagemDeErro(response.status, data),
+      response.status,
       data,
     )
   }
@@ -169,12 +95,12 @@ export async function request(
 }
 
 export const api = {
-  get: (path, opts) => request('GET', path, opts),
-  post: (path, body, opts) =>
-    request('POST', path, { ...opts, body: body ?? {} }),
-  put: (path, body, opts) =>
-    request('PUT', path, { ...opts, body: body ?? {} }),
-  patch: (path, body, opts) =>
-    request('PATCH', path, { ...opts, body: body ?? {} }),
-  del: (path, opts) => request('DELETE', path, opts),
+  get: (path, options) => request('GET', path, options),
+  post: (path, body, options) =>
+    request('POST', path, { ...options, body: body ?? {} }),
+  put: (path, body, options) =>
+    request('PUT', path, { ...options, body: body ?? {} }),
+  patch: (path, body, options) =>
+    request('PATCH', path, { ...options, body: body ?? {} }),
+  del: (path, options) => request('DELETE', path, options),
 }
