@@ -1,9 +1,8 @@
-import { useEffect, useMemo, useState } from 'react'
-import { reservasApi } from '../api/services'
-import useFetch from '../hooks/useFetch'
+import useMinhasReservas from '../hooks/useMinhasReservas'
 import { Link } from '../router/Router'
-import { asList, loadReservaSnapshot, normalizeReserva, STATUS } from '../utils/catalog'
+import { STATUS } from '../utils/catalog'
 import { brl, formatDate, guestsSummary, todayISO } from '../utils/format'
+import { podeCancelarReserva } from '../utils/reservas'
 import { TARIFA } from '../utils/pricing'
 import ErrorAlert from '../components/ErrorAlert'
 import Modal from '../components/Modal'
@@ -11,23 +10,6 @@ import StatusBadge from '../components/StatusBadge'
 import { BlockSkeleton } from '../components/Skeletons'
 
 const FILTROS = ['Todas', STATUS.PENDENTE, STATUS.CONFIRMADA, STATUS.CANCELADA]
-
-/** Completa hotel/quarto com o resumo salvo no checkout, se a API não devolver esses campos. */
-function enriquecer(r) {
-  const n = normalizeReserva(r)
-  if (n.hotel_nome && n.quarto_numero) return n
-  const snap = loadReservaSnapshot(n.id)
-  return snap
-    ? {
-        ...n,
-        hotel_id: n.hotel_id ?? snap.hotel_id,
-        hotel_nome: n.hotel_nome ?? snap.hotel_nome,
-        quarto_numero: n.quarto_numero ?? snap.quarto_numero,
-        quarto_tipo: n.quarto_tipo ?? snap.quarto_tipo,
-        preco_diaria: n.preco_diaria ?? snap.preco_diaria,
-      }
-    : n
-}
 
 function InfoCancelamento({ reserva }) {
   if (reserva.status === STATUS.CANCELADA) {
@@ -54,53 +36,12 @@ function AvisoMulta() {
 }
 
 export default function MinhasReservasPage() {
-  const { data, loading, error, reload } = useFetch(() => reservasApi.listar().then((d) => asList(d).map(enriquecer)), [])
-  const [filtro, setFiltro] = useState('Todas')
-  const [alvo, setAlvo] = useState(null) // reserva em processo de cancelamento
-  const [cancelando, setCancelando] = useState(false)
-  const [erroCancel, setErroCancel] = useState(null)
-  const [aviso, setAviso] = useState(null)
+  const {
+    data, visiveis, loading, error, reload, filtro, setFiltro, alvo, setAlvo,
+    cancelando, erroCancel, setErroCancel, aviso, setAviso, confirmarCancelamento,
+  } = useMinhasReservas()
   const hoje = todayISO()
-
-  const reservas = useMemo(
-    () => [...(data || [])].sort((a, b) => String(b.data_checkin).localeCompare(String(a.data_checkin))),
-    [data],
-  )
-  const visiveis = filtro === 'Todas' ? reservas : reservas.filter((r) => r.status === filtro)
-  const temPendente = reservas.some((r) => r.status === STATUS.PENDENTE)
-
-  useEffect(() => {
-  if (!temPendente) return undefined
-
-  const intervalo = setInterval(() => {
-    reload()
-  }, 3000)
-
-  return () => clearInterval(intervalo)
-  }, [temPendente, reload])
-
-  async function confirmarCancelamento() {
-    setCancelando(true)
-    setErroCancel(null)
-    try {
-      const r = await reservasApi.cancelar(alvo.id)
-      const multa = Number(r?.valor_multa_cancelamento ?? 0)
-      setAviso(
-        multa > 0
-          ? `Reserva cancelada. Multa aplicada: ${brl(multa)}.`
-          : 'Reserva cancelada sem multa.',
-      )
-      setAlvo(null)
-      reload()
-    } catch (err) {
-      setErroCancel(err)
-    } finally {
-      setCancelando(false)
-    }
-  }
-
-  const podeCancelar = (r) =>
-    (r.status === STATUS.PENDENTE || r.status === STATUS.CONFIRMADA) && String(r.data_checkin).slice(0, 10) >= hoje
+  const podeCancelar = (reserva) => podeCancelarReserva(reserva, hoje)
 
   return (
     <div className="container py-4">
