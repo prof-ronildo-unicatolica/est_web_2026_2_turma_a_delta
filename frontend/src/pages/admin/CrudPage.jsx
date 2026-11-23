@@ -4,15 +4,9 @@ import ErrorAlert from '../../components/ErrorAlert'
 import Modal from '../../components/Modal'
 import { BlockSkeleton } from '../../components/Skeletons'
 
-/**
- * CRUD genérico do painel admin (tabela + formulário em modal).
- *
- * fields: [{ name, label, type: text|number|select|textarea|checkboxes, required, options, help,
- *            maxLength, min, max, rows, validate(valor, valores) -> mensagem | '' }]
- * columns: [{ key, label, render?(item) }]
- */
 export default function CrudPage({
   titulo,
+  descricao,
   singular,
   carregar,
   criar,
@@ -26,6 +20,7 @@ export default function CrudPage({
   nomeDoItem = (i) => i.nome,
   recarregarDeps = [],
   acoesDoFormulario,
+  somenteCriacao = false,
 }) {
   const { data, loading, error, reload } = useFetch(carregar, recarregarDeps)
   const [modal, setModal] = useState(null) // { modo: 'criar' | 'editar', item }
@@ -145,13 +140,16 @@ export default function CrudPage({
         <input
           id={id}
           className={cls}
-          type={c.type === 'number' ? 'number' : 'text'}
+          type={['number', 'date'].includes(c.type) ? c.type : 'text'}
           step={c.step}
           min={c.min}
           max={c.max}
           maxLength={c.maxLength}
           value={v}
-          onChange={(e) => set(c.name, c.upper ? e.target.value.toUpperCase() : e.target.value)}
+          onChange={(e) => {
+            const valor = c.type === 'number' ? (e.target.value === '' ? '' : Number(e.target.value)) : e.target.value
+            set(c.name, c.upper ? String(valor).toUpperCase() : valor)
+          }}
         />
       )
     }
@@ -172,7 +170,7 @@ export default function CrudPage({
   return (
     <div>
       <div className="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
-        <h1 className="h4 mb-0">{titulo}</h1>
+        <div><h1 className="h4 mb-0">{titulo}</h1>{descricao && <p className="text-muted small mb-0">{descricao}</p>}</div>
         <button type="button" className="btn btn-primary btn-sm" onClick={abrirCriar}>
           Novo(a) {singular.toLowerCase()}
         </button>
@@ -216,9 +214,11 @@ export default function CrudPage({
                     <td key={c.key}>{c.render ? c.render(item) : item[c.key]}</td>
                   ))}
                   <td className="text-end text-nowrap">
-                    <button type="button" className="btn btn-outline-primary btn-sm me-2" onClick={() => abrirEditar(item)}>
-                      Editar
-                    </button>
+                    {!somenteCriacao && (
+                      <button type="button" className="btn btn-outline-primary btn-sm me-2" onClick={() => abrirEditar(item)}>
+                        Editar
+                      </button>
+                    )}
                     <button type="button" className="btn btn-outline-danger btn-sm" onClick={() => setExcluir(item)}>
                       Excluir
                     </button>
