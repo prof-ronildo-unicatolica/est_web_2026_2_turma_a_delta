@@ -1,55 +1,18 @@
-import { useEffect, useRef, useState } from 'react'
-import { reservasApi } from '../api/services'
+import useReservaStatus from '../hooks/useReservaStatus'
 import { Link } from '../router/Router'
 import { useParams } from '../router/hooks'
-import { loadReservaSnapshot, normalizeReserva, STATUS } from '../utils/catalog'
+import { loadReservaSnapshot, STATUS } from '../utils/catalog'
+import { removerValoresNulos } from '../utils/reservas'
 import { brl, formatDate, guestsSummary } from '../utils/format'
 import ErrorAlert from '../components/ErrorAlert'
-
-const INTERVALO_MS = 3000
-const MAX_TENTATIVAS = 40 // ~2 min
 
 /** Tela 5: acompanha a reserva na fila (short polling a cada 3s) e mostra Voucher ou Erro. */
 export default function ReservaStatusPage() {
   const { id } = useParams()
   const snapshot = loadReservaSnapshot(id)
-  const [reserva, setReserva] = useState(null)
-  const [erro, setErro] = useState(null)
-  const [demorou, setDemorou] = useState(false)
-  const tentativas = useRef(0)
+  const { reserva, erro, demorou } = useReservaStatus(id)
 
-  useEffect(() => {
-    let cancelado = false
-    let timer
-    tentativas.current = 0
-
-    async function consultar() {
-      try {
-        const r = normalizeReserva(await reservasApi.obter(id))
-        if (cancelado) return
-        setReserva(r)
-        setErro(null)
-        if (r.status === STATUS.PENDENTE) {
-          tentativas.current += 1
-          if (tentativas.current >= MAX_TENTATIVAS) setDemorou(true)
-          else timer = setTimeout(consultar, INTERVALO_MS)
-        }
-      } catch (err) {
-        if (cancelado) return
-        setErro(err)
-        // falha de rede/servidor: continua tentando; 401/403/404: para
-        if (err.status === 0 || err.status >= 500) timer = setTimeout(consultar, INTERVALO_MS)
-      }
-    }
-
-    consultar()
-    return () => {
-      cancelado = true
-      clearTimeout(timer)
-    }
-  }, [id])
-
-  const dados = reserva ? { ...snapshot, ...stripNulls(reserva) } : snapshot
+  const dados = reserva ? { ...snapshot, ...removerValoresNulos(reserva) } : snapshot
   const status = reserva?.status
 
   if (!reserva && erro && erro.status !== 0 && erro.status < 500) {
@@ -177,6 +140,3 @@ export default function ReservaStatusPage() {
   )
 }
 
-function stripNulls(obj) {
-  return Object.fromEntries(Object.entries(obj).filter(([, v]) => v !== null && v !== undefined))
-}
