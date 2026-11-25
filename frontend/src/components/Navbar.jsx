@@ -15,7 +15,7 @@ export default function Navbar() {
           to="/"
           onClick={() => setAberto(false)}
         >
-          Rede Hoteleira
+          MeuCheckin
         </Link>
 
         <button

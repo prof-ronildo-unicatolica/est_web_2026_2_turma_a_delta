@@ -71,5 +71,3 @@ export function Redirect({ to, state }) {
   }, [to, state, navigate])
   return null
 }
-
-export { useSearchParams } from './hooks'
