@@ -210,3 +210,14 @@ button, .btn, .form-control, .form-select { touch-action: manipulation; }
   .brand { font-size: 1.15rem; }
   .counter .form-control { max-width: 2.6rem; }
 }
+
+
+/* JSON bruto da API: preserva indentação e permite leitura em telas menores. */
+.raw-json {
+  max-height: 34rem;
+  overflow: auto;
+  white-space: pre;
+  overflow-wrap: normal;
+  font-size: 0.82rem;
+  line-height: 1.5;
+}

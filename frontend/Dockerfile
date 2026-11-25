@@ -6,8 +6,15 @@ WORKDIR /app
 COPY package.json package-lock.json ./
 
 RUN npm ci --silent
+# ─── Stage 1: Build ──────────────────────────────────────
+FROM node:20-alpine AS builder
 
-# Copia somente os arquivos necessários para o build
+WORKDIR /app
+
+COPY package.json package-lock.json ./
+
+RUN npm ci --silent
+
 COPY index.html ./
 COPY vite.config.js ./
 COPY src/ ./src/
