@@ -35,16 +35,19 @@ class HotelCreateSchema(BaseModel):
     cidade_id: uuid.UUID
     categoria_estrelas: int = Field(default=3, ge=1, le=5)
     localizacao: dict | None = None
+    comodidade_ids: list[uuid.UUID] = Field(default_factory=list)
 
 
 class HotelResponseSchema(BaseModel):
+    """Representação pública completa de um hotel e de sua cidade."""
+
     id: uuid.UUID
     nome: str
     cidade_id: uuid.UUID
-    cidade: str
+    cidade: CidadeResponseSchema
     categoria_estrelas: int
     localizacao: dict | None
-    comodidades: list[uuid.UUID]
+    comodidades: list[ComodidadeResponseSchema] = Field(default_factory=list)
 
 
 class QuartoCreateSchema(BaseModel):
