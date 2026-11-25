@@ -194,7 +194,8 @@ function HotelCard({ hotel, quartos, query }) {
 
         {comodidades.length > 0 && (
           <div className="d-flex flex-wrap gap-2 my-3">
-            {comodidades.slice(0, 4).map((item, indice) => (
+            
+            {comodidades.slice(0, 4).map((item) => (
               <span
                 key={String(
                   typeof item === 'object'
@@ -206,6 +207,7 @@ function HotelCard({ hotel, quartos, query }) {
                 {typeof item === 'string' ? item : item?.nome}
               </span>
             ))}
+              
           </div>
         )}
 
