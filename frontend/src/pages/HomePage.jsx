@@ -196,7 +196,11 @@ function HotelCard({ hotel, quartos, query }) {
           <div className="d-flex flex-wrap gap-2 my-3">
             {comodidades.slice(0, 4).map((item, indice) => (
               <span
-                key={`${String(item)}-${indice}`}
+                key={String(
+                  typeof item === 'object'
+                    ? item?.id ?? item?.nome ?? JSON.stringify(item)
+                    : item
+                )}
                 className="badge bg-light text-secondary border"
               >
                 {typeof item === 'string' ? item : item?.nome}
