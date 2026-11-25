@@ -12,11 +12,12 @@ export function useSearchParams() {
   const { location, navigate } = useContext(RouterContext)
   const params = useMemo(() => new URLSearchParams(location.search), [location.search])
   const setParams = useCallback(
-    (obj, opts) => {
-      const q = new URLSearchParams()
-      Object.entries(obj).forEach(([k, v]) => {
-        if (v !== undefined && v !== null && v !== '') q.set(k, v)
-      })
+    (obj = {}, opts) => {
+      const q = obj instanceof URLSearchParams
+        ? new URLSearchParams(obj)
+        : new URLSearchParams(
+            Object.entries(obj).filter(([, v]) => v !== undefined && v !== null && v !== ''),
+          )
       const s = q.toString()
       navigate(`${location.pathname}${s ? `?${s}` : ''}`, opts)
     },

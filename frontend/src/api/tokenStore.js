@@ -1,6 +1,10 @@
+
 const TOKEN_KEY = 'hotel.token'
 
-/** Armazena o token sem interromper a aplicação quando o storage estiver bloqueado. */
+/**
+ * Gerencia o armazenamento do token de autenticação.
+ * A aplicação continua funcionando caso o navegador bloqueie o storage.
+ */
 export const tokenStore = {
   get() {
     try {
@@ -14,7 +18,7 @@ export const tokenStore = {
     try {
       localStorage.setItem(TOKEN_KEY, token)
     } catch {
-      // O armazenamento pode estar indisponível no navegador.
+      return
     }
   },
 
@@ -22,7 +26,7 @@ export const tokenStore = {
     try {
       localStorage.removeItem(TOKEN_KEY)
     } catch {
-      // A limpeza do storage não deve interromper o logout.
+      return
     }
   },
 }

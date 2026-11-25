@@ -1,4 +1,4 @@
-/** Capa ilustrativa gerada a partir do nome do hotel (não há fotos no cadastro). */
+
 function hash(str) {
   let h = 0
   for (let i = 0; i < str.length; i += 1) h = (h * 31 + str.charCodeAt(i)) >>> 0

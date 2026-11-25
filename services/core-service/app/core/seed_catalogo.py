@@ -55,13 +55,15 @@ def seed_catalogo() -> None:
 
             hoteis_db[nome] = hotel
 
+        # Valores demonstrativos para que o fluxo de busca/reserva não exiba
+        # diárias zeradas em uma instalação nova do projeto.
         quartos = [
-            ("Hotel Monólitos", "101", "Casal", 2),
-            ("Hotel Vale das Pedras", "201", "Luxo", 2),
-            ("Hotel Sertão Premium", "301", "Família", 4),
+            ("Hotel Monólitos", "101", "Casal", 2, 189.90),
+            ("Hotel Vale das Pedras", "201", "Luxo", 2, 249.90),
+            ("Hotel Sertão Premium", "301", "Família", 4, 329.90),
         ]
 
-        for hotel_nome, numero, tipo, max_adultos in quartos:
+        for hotel_nome, numero, tipo, max_adultos, preco_diaria in quartos:
             quarto = db.scalar(
                 select(Quarto).where(
                     Quarto.hotel_id == hoteis_db[hotel_nome].id,
@@ -75,11 +77,13 @@ def seed_catalogo() -> None:
                         hotel_id=hoteis_db[hotel_nome].id,
                         numero=numero,
                         tipo=tipo,
-                        preco_diaria=0,
+                        preco_diaria=preco_diaria,
                         max_adultos=max_adultos,
                         max_criancas=0,
                     )
                 )
+            elif quarto.preco_diaria == 0:
+                quarto.preco_diaria = preco_diaria
 
         db.commit()
     except Exception:

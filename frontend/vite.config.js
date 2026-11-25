@@ -2,8 +2,6 @@
 import { defineConfig, loadEnv } from 'vite'
 import react from '@vitejs/plugin-react'
 
-// Em desenvolvimento, o Vite encaminha /api para o backend.
-// Em produção, essa função é realizada pelo nginx.
 export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, '.', 'VITE_')
 

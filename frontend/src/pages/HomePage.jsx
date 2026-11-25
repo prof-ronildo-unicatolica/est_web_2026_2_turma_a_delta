@@ -1,6 +1,7 @@
 
 import { useEffect, useMemo, useState } from 'react'
-import { Link, useSearchParams } from 'react-router-dom'
+import { Link } from '../router/Router'
+import { useSearchParams } from '../router/hooks'
 import { catalogoApi } from '../api/services'
 
 function numero(valor, padrao = 0) {
@@ -125,6 +126,21 @@ function menorPreco(hotel, quartos) {
   return precos.length ? Math.min(...precos) : null
 }
 
+const FOTOS_HOTEIS = [
+  'https://images.unsplash.com/photo-1566073771259-6a8506099945?auto=format&fit=crop&w=1000&q=85',
+  'https://images.unsplash.com/photo-1542314831-068cd1dbfeeb?auto=format&fit=crop&w=1000&q=85',
+  'https://images.unsplash.com/photo-1564501049412-61c2a3083791?auto=format&fit=crop&w=1000&q=85',
+]
+
+function fotoDoHotel(hotel) {
+  const informada = hotel?.imagem_url || hotel?.foto_url || hotel?.imagem
+  if (informada) return informada
+
+  const nome = nomeHotel(hotel)
+  const indice = [...nome].reduce((total, letra) => total + letra.charCodeAt(0), 0) % FOTOS_HOTEIS.length
+  return FOTOS_HOTEIS[indice]
+}
+
 function HotelCard({ hotel, quartos, query }) {
   const estrelas = quantidadeEstrelas(hotel)
   const preco = menorPreco(hotel, quartos)
@@ -148,25 +164,16 @@ function HotelCard({ hotel, quartos, query }) {
           background: '#eaf1f7',
         }}
       >
-        {hotel?.imagem_url || hotel?.foto_url || hotel?.imagem ? (
-          <img
-            src={hotel.imagem_url || hotel.foto_url || hotel.imagem}
-            alt={`Imagem do ${nomeHotel(hotel)}`}
-            className="w-100 h-100"
-            style={{
-              minHeight: '190px',
-              maxHeight: '220px',
-              objectFit: 'cover',
-            }}
-          />
-        ) : (
-          <div className="text-center text-secondary p-4">
-            <div className="fs-1 mb-2" aria-hidden="true">
-              🏨
-            </div>
-            <span>Imagem não disponível</span>
-          </div>
-        )}
+        <img
+          src={fotoDoHotel(hotel)}
+          alt={`Fotografia ilustrativa do ${nomeHotel(hotel)}`}
+          className="w-100 h-100 hotel-card-image"
+          loading="lazy"
+          onError={(evento) => {
+            evento.currentTarget.onerror = null
+            evento.currentTarget.src = FOTOS_HOTEIS[0]
+          }}
+        />
       </div>
 
       <div className="card-body d-flex flex-column p-4">
@@ -193,9 +200,9 @@ function HotelCard({ hotel, quartos, query }) {
 
         {comodidades.length > 0 && (
           <div className="d-flex flex-wrap gap-2 my-3">
-            {comodidades.slice(0, 4).map((item, indice) => (
+            {comodidades.slice(0, 4).map((item) => (
               <span
-                key={`${String(item)}-${indice}`}
+                key={String(typeof item === 'object' ? item?.id ?? item?.nome ?? JSON.stringify(item) : item)}
                 className="badge bg-light text-secondary border"
               >
                 {typeof item === 'string' ? item : item?.nome}
@@ -426,21 +433,21 @@ function HomePageContent({ params, setParams }) {
 
   return (
     <main>
-      <section className="bg-primary text-white py-5">
+      <section className="hero text-white">
         <div className="container py-3">
           <div className="row align-items-center">
             <div className="col-lg-8">
               <span className="badge bg-light text-primary mb-3">
-                Sua próxima viagem começa aqui
+                Reserva 100% direta • Zero taxas de intermediação
               </span>
 
               <h1 className="display-5 fw-bold mb-3">
-                Encontre o hotel ideal para sua viagem
+                Encontre o hotel ideal e faça seu check-in sem complicação.
               </h1>
 
               <p className="lead mb-0">
-                Compare opções de hospedagem, escolha seu destino
-                e encontre o espaço ideal para aproveitar sua estadia.
+                Compare hospedagens em todo o Brasil e reserve direto com o hotel,
+                com segurança e transparência.
               </p>
             </div>
           </div>
@@ -477,7 +484,7 @@ function HomePageContent({ params, setParams }) {
 
               <div className="col-12 col-md-6 col-lg-2">
                 <label htmlFor="checkin" className="form-label fw-semibold">
-                  Entrada
+                  Check-in
                 </label>
 
                 <input
@@ -503,7 +510,7 @@ function HomePageContent({ params, setParams }) {
 
               <div className="col-12 col-md-6 col-lg-2">
                 <label htmlFor="checkout" className="form-label fw-semibold">
-                  Saída
+                  Check-out
                 </label>
 
                 <input

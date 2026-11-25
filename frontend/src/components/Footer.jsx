@@ -16,7 +16,7 @@ export default function Footer() {
   return (
     <footer className="app-footer py-4 mt-5">
       <div className="container d-flex flex-wrap justify-content-between gap-2 small text-secondary">
-        <span>&copy; {ANO_ATUAL} Rede Hoteleira — Estágio II</span>
+        <span>&copy; {ANO_ATUAL} MeuCheckin</span>
         <span className="d-inline-flex align-items-center gap-2" role="status">
           <span
             className={`dot ${loading ? 'dot-wait' : online ? 'dot-ok' : 'dot-off'}`}

@@ -104,8 +104,8 @@ export default function HotelDetailPage() {
         {hotel.comodidades.length ? (
           <div className="d-flex flex-wrap gap-2">
             {hotel.comodidades.map((c) => (
-              <span key={c} className="chip chip-lg">
-                {c}
+              <span key={c.id || c} className="chip chip-lg">
+                {c.nome || c}
               </span>
             ))}
           </div>

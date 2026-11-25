@@ -1,8 +1,4 @@
-/**
- * Roteador mínimo baseado na History API (sem dependências externas).
- * A API espelha a do react-router (Link, NavLink, useNavigate, useParams...),
- * então migrar depois é trocar o import.
- */
+
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { ParamsContext, RouterContext, matchPath, useLocation, useNavigate } from './hooks'
 

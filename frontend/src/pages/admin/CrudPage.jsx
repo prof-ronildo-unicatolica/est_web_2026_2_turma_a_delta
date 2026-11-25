@@ -4,13 +4,7 @@ import ErrorAlert from '../../components/ErrorAlert'
 import Modal from '../../components/Modal'
 import { BlockSkeleton } from '../../components/Skeletons'
 
-/**
- * CRUD genérico do painel admin (tabela + formulário em modal).
- *
- * fields: [{ name, label, type: text|number|select|textarea|checkboxes, required, options, help,
- *            maxLength, min, max, rows, validate(valor, valores) -> mensagem | '' }]
- * columns: [{ key, label, render?(item) }]
- */
+
 export default function CrudPage({
   titulo,
   singular,
