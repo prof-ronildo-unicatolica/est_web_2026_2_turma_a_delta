@@ -1,6 +1,6 @@
 import { useEffect } from 'react'
 
-/** Modal controlado por React (Bootstrap só fornece o CSS). Fecha com Esc ou clique no fundo. */
+
 export default function Modal({ title, onClose, children, footer, size = '', busy = false }) {
   useEffect(() => {
     const onKey = (e) => e.key === 'Escape' && !busy && onClose()

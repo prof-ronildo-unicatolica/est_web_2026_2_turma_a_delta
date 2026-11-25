@@ -1,6 +1,7 @@
 
 import { useEffect, useMemo, useState } from 'react'
-import { Link, useSearchParams } from 'react-router-dom'
+import { Link, useSearchParams } from '../router/Router'
+import HoteisRaw from '../components/HoteisRaw'
 import { catalogoApi } from '../api/services'
 
 function numero(valor, padrao = 0) {
@@ -712,6 +713,8 @@ function HomePageContent({ params, setParams }) {
           </div>
         ) : null}
       </section>
+
+      <HoteisRaw />
     </main>
   )
 }
